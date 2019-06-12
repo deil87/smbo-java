@@ -9,26 +9,24 @@ import java.util.*;
 /**
  * This class aggregates logic that selects best suggestion from Surrogate model based on acquisition function
  */
-public class GPSMBO extends SMBO<GPSurrogateModel, MaxImprovementAF> {
-
-  private final GPSurrogateModel _surrogateModel;
-  private final MaxImprovementAF _acquisitionFunction;
-  private final boolean _theBiggerTheBetter;
+public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TODO maybe we don't need generic type AcquisitionFunction
 
   // Defaults
   int priorSize = 10;
   //Move to SMBO
   RandomSelector _randomSelector;
-  //Move to SMBO
 
   private boolean theBiggerTheBetter;
 
   public GPSMBO(HashMap<String, Object[]> grid, boolean theBiggerTheBetter, long seed) {
+    this(grid, new MaxImprovementAF(theBiggerTheBetter), theBiggerTheBetter, seed);
+  }
+
+  public GPSMBO(HashMap<String, Object[]> grid, AcquisitionFunction af, boolean theBiggerTheBetter, long seed) {
     super(grid);
     _randomSelector = new RandomSelector(grid, seed);
-
     _surrogateModel = new GPSurrogateModel();
-    _acquisitionFunction = new MaxImprovementAF(theBiggerTheBetter);
+    _acquisitionFunction = af;
     _theBiggerTheBetter = theBiggerTheBetter;
   }
 
@@ -163,7 +161,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, MaxImprovementAF> {
   }
 
   @Override
-  public MaxImprovementAF acquisitionFunction() {
+  public AcquisitionFunction acquisitionFunction() {
     return _acquisitionFunction;
   }
 }

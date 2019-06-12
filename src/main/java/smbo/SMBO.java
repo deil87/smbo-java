@@ -6,6 +6,10 @@ import java.util.HashMap;
 
 public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunction> {
 
+  protected SM _surrogateModel;
+  protected AF _acquisitionFunction;
+  protected boolean _theBiggerTheBetter;
+
   public HashMap<String, Object[]> getGrid() {
     return _grid;
   }
