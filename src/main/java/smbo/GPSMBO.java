@@ -1,8 +1,8 @@
 package smbo;
 
 import org.jblas.DoubleMatrix;
+import org.jblas.MatrixFunctions;
 import org.jblas.ranges.IntervalRange;
-import utils.TestUtils;
 
 import java.util.*;
 
@@ -65,6 +65,10 @@ public class GPSMBO extends SMBO<GPSurrogateModel, MaxImprovementAF> {
     Double xVal = (Double)entry.getEntry().get("X");
     double result = Math.sin(xVal / 2.5) * 5 ;
     return new EvaluatedGridEntry(entry, result);
+  }
+
+  public DoubleMatrix objectiveFunction(DoubleMatrix entry) {
+    return MatrixFunctions.sin(entry.div(2.5)).mul(5);
   }
 
 
