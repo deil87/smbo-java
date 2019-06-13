@@ -12,7 +12,7 @@ import java.util.*;
 public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TODO maybe we don't need generic type AcquisitionFunction
 
   // Defaults
-  int priorSize = 10;
+  int priorSize = 5;
   //Move to SMBO
   RandomSelector _randomSelector;
 
@@ -25,6 +25,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   public GPSMBO(HashMap<String, Object[]> grid, AcquisitionFunction af, boolean theBiggerTheBetter, long seed) {
     super(grid);
     _randomSelector = new RandomSelector(grid, seed);
+//    _surrogateModel = new GPSurrogateModel(0.6, 0.5);
     _surrogateModel = new GPSurrogateModel();
     _acquisitionFunction = af;
     _theBiggerTheBetter = theBiggerTheBetter;
@@ -44,18 +45,21 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
       _observedGridEntries = DoubleMatrix.concatVertically(_observedGridEntries, newObservationFromObjectiveFun);
     }
 
-//    DoubleMatrix updatedPrior = surrogateModel().updateCovariancePrior(_observedGridEntries, newObservationFromObjectiveFun);
-
     AcquisitionFunction acquisitionFunction = acquisitionFunction();
     if(!acquisitionFunction.isIncumbentColdStartSetupHappened()) {
-      int indexOfTheRowWithBestResponse = _observedGridEntries.getColumn(_observedGridEntries.columns - 1).columnArgmaxs()[0];
-      DoubleMatrix bestFromPrior = _observedGridEntries.getRow(indexOfTheRowWithBestResponse);
+      DoubleMatrix bestFromPrior = selectBestBasedOnResponse(_observedGridEntries);
 
-      acquisitionFunction.setIncumbent(bestFromPrior.get(0, bestFromPrior.columns -1));
+      double newIncumbent = bestFromPrior.get(0, bestFromPrior.columns - 1);
+      acquisitionFunction.setIncumbent(newIncumbent);
 
     } else {
-      acquisitionFunction.updateIncumbent(newObservationFromObjectiveFun.get(0, newObservationFromObjectiveFun.columns));
+      acquisitionFunction.updateIncumbent(newObservationFromObjectiveFun.get(0, newObservationFromObjectiveFun.columns -1));
     }
+  }
+
+  DoubleMatrix selectBestBasedOnResponse(DoubleMatrix observedGridEntries) {
+    int indexOfTheRowWithBestResponse = observedGridEntries.getColumn(observedGridEntries.columns - 1).columnArgmaxs()[0];
+    return observedGridEntries.getRow(indexOfTheRowWithBestResponse);
   }
 
   // Hardcoded OF for now. Should be defined by user. Make abstract class to force user.
@@ -91,10 +95,15 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     DoubleMatrix afEvaluations = acquisitionFunction().compute(meanVariance.getMean(), meanVariance.getVariance());
 
 
-    int bestIndex = selectBest(meanVariance.getMean(), afEvaluations);
+    int bestIndex = selectBest( afEvaluations);
 
-    DoubleMatrix bestCandidateGridEntry = _unObservedGridEntries.getRow(bestIndex);
-    dropSuggestionFromUnObservedGridEntries(bestIndex);
+    DoubleMatrix bestCandidateGridEntry = null;
+    try {
+      bestCandidateGridEntry = _unObservedGridEntries.getRow(bestIndex);
+    } catch (Exception ex) {
+      System.out.println();
+    }
+    dropSuggestionFromUnObservedGridEntries(bestIndex); // this is done for optimisation reasons. As soon we suggested item it is considered to be observed by caller.
     return bestCandidateGridEntry;
   }
 
@@ -149,8 +158,9 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     }
   }
 
-  int selectBest(DoubleMatrix means, DoubleMatrix afEvaluations) {
+  int selectBest(DoubleMatrix afEvaluations) {
     int indexOfTheBiggestMeanImprovement = afEvaluations.argmax();
+    assert indexOfTheBiggestMeanImprovement >= 0 && indexOfTheBiggestMeanImprovement < afEvaluations.rows : "Index for best suggestion from af evaluations is out of range";
     return indexOfTheBiggestMeanImprovement;
 //    return means.get(indexOfTheBiggestMeanImprovement);
   }

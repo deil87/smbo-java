@@ -2,6 +2,7 @@ package smbo;
 
 import javafx.scene.paint.Color;
 import org.jblas.DoubleMatrix;
+import org.jblas.ranges.IntervalRange;
 import org.junit.Test;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.markers.SeriesMarkers;
@@ -98,7 +99,7 @@ public class GPSMBOTest {
     GPSMBO gpsmbo = new GPSMBO(grid, true, 1234);
     DoubleMatrix afAvaluations = new DoubleMatrix(5,1, 1,3,7,2,5);
     DoubleMatrix means = new DoubleMatrix(5,1, 1,2,3,4,5);
-    assertEquals(3, gpsmbo.selectBest(means, afAvaluations), 1e-5);
+    assertEquals(3, gpsmbo.selectBest( afAvaluations), 1e-5);
   }
 
   @Test
@@ -130,6 +131,27 @@ public class GPSMBOTest {
     }
 
     assertEquals(9, gpsmbo.getUnObservedGridEntries().length);
+  }
+
+  @Test
+  public void selectBestBasedOnResponse() throws SMBO.SMBOSearchCompleted {
+    int size = 2;
+    Double[] gridEntries = new Double[size*10];
+    int i;
+    for (i = 0; i < size*10; i++) {
+      gridEntries[i] = (double) i / 10;
+    }
+
+    HashMap<String, Object[]> grid = new HashMap<>();
+    grid.put("X", gridEntries);
+    GPSMBO gpsmbo = new GPSMBO(grid, true, 1234);
+
+    DoubleMatrix observed = new DoubleMatrix(5, 2, 1,2,3,4,5, 8,7,9,19,5);
+    DoubleMatrix best = gpsmbo.selectBestBasedOnResponse(observed);
+
+    TestUtils.multilinePrint("Best row", best);
+
+    assertEquals(new DoubleMatrix(1,2,4, 19), best);
   }
 
 
@@ -226,6 +248,74 @@ public class GPSMBOTest {
 
     chart.addSeries("Original OF", unObservedGridEntries.toArray(), YValDM.toArray());
     XYSeries series = chart.addSeries("Prior", gpsmboSuggestions.getObservedGridEntries().getColumn(0).toArray(), gpsmboSuggestions.getObservedGridEntries().getColumn(1).toArray());
+    series.setMarker(SeriesMarkers.DIAMOND);
+    for(int si = 0; si < suggestions.rows ; si++) {
+      DoubleMatrix suggestion = suggestions.getRow(si);
+      XYSeries series2 = chart.addSeries("Suggestion:" + si, suggestion.toArray(), evaluateRowsWithOF(gpsmboSuggestions, suggestion).sub(0.2).toArray());
+      series2.setMarker(SeriesMarkers.PLUS);
+
+      series2.setMarkerColor(new java.awt.Color( Math.max(255 - si* 3, 0),0, 0));
+    }
+
+
+    BitmapEncoder.saveBitmapWithDPI(chart, "./SMBO_GP_suggestions_based_on_max_improvement_300_DPI", BitmapEncoder.BitmapFormat.PNG, 300);
+
+  }
+
+  @Test
+  public void getNextBestHyperparameters_ALL_with_visualisation_EI_acquisition() throws SMBO.SMBOSearchCompleted, IOException {
+
+    double tradeoff = 0.0;
+    EI ei = new EI(tradeoff, true);
+
+    int size = 25;
+    Double[] gridEntries = new Double[size*10];
+    int i;
+    for (i = 0; i < size*10; i++) {
+      gridEntries[i] = (double) i / 10;
+    }
+
+    HashMap<String, Object[]> grid = new HashMap<>();
+    grid.put("X", gridEntries);
+
+    int seed = 12345;
+
+    GPSMBO gpsmbo = new GPSMBO(grid, ei, true, seed);
+    gpsmbo.materializeGrid();
+    DoubleMatrix unObservedGridEntries = gpsmbo.getUnObservedGridEntries();
+
+    // Evaluate whole grid to draw original OF
+    DoubleMatrix YValDM = evaluateRowsWithOF(gpsmbo, unObservedGridEntries);
+
+    GPSMBO gpsmboSuggestions = new GPSMBO(grid, ei,true, seed);
+    DoubleMatrix suggestions = null;
+
+    DoubleMatrix onlyPriorEvaluation = null;
+    try{
+      while (true) {
+        DoubleMatrix nextBestCandidate = gpsmboSuggestions.getNextBestCandidateForEvaluation();
+        if(onlyPriorEvaluation == null) {
+          onlyPriorEvaluation = gpsmboSuggestions.getObservedGridEntries().getRows(new IntervalRange(0, 5)); // 10 - size of a prior
+        }
+
+        if(suggestions == null) {
+          suggestions = nextBestCandidate;
+        } else {
+          suggestions = DoubleMatrix.concatVertically(suggestions, nextBestCandidate);
+        }
+        DoubleMatrix observedSuggestion = evaluateRowsWithOF(gpsmboSuggestions, nextBestCandidate);
+        gpsmboSuggestions.updatePrior(DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion));
+      }
+    } catch (SMBO.SMBOSearchCompleted ex) {
+
+    }
+
+    XYChart chart = new XYChartBuilder().width(1000).height(500).title("SMBO suggestions").xAxisTitle("X").yAxisTitle("Y").build();
+    chart.getStyler().setDefaultSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Scatter);
+    chart.getStyler().setLegendVisible(false);
+
+    chart.addSeries("Original OF", unObservedGridEntries.toArray(), YValDM.toArray());
+    XYSeries series = chart.addSeries("Prior", onlyPriorEvaluation.getColumn(0).toArray(), onlyPriorEvaluation.getColumn(1).toArray());
     series.setMarker(SeriesMarkers.DIAMOND);
     for(int si = 0; si < suggestions.rows ; si++) {
       DoubleMatrix suggestion = suggestions.getRow(si);

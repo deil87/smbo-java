@@ -79,23 +79,32 @@ public class GPSurrogateModel extends SurrogateModel{
 
     DoubleMatrix K = combineKMatrices(covariancePrior, covarianceBetweenNewAndPrior, K2, varianceForNewObservations);
 
+    // Step 1: Compute means
+
     // mt(x) = K(X*, Xt) * [K(Xt , Xt) + σ^2 * I ]^-1 * yt 
     //
     //           ^^                ^^                 ^^
-    //           K2                 b                  c (= priorMeans) 
-    DoubleMatrix b = Solve.solve(covariancePrior, eye(n)); // solve with Identity B matrix in Ax=B will return us inverse.
+    //           K2                 b                  c (= priorMeans)
+
+    // Note: without multiplying by sigma^2 here I was getting negative variances. Because probably in one part of the overall formula I WAS using sigma but here I did not (just eye(n))
+    DoubleMatrix noiseIdentity = eye(n).mul(sigma * sigma);
+    DoubleMatrix b = Solve.solve(covariancePrior, noiseIdentity); // solve with Identity B matrix in Ax=B will return us inverse.
 
     DoubleMatrix ab = K2.mmul(b);
     DoubleMatrix posteriorMeanMatrix = ab.mmul(priorMeans);
 
+    // Step 2: Compute standard deviations/ sigmas
+    //
     // Sigma = K(X*, X*) − K(X*, Xt) [ K(Xt , Xt) + σ^2 *I]^−1 * K(Xt , X*)
     //
     //           ^^                ^^      ^^
     // varianceForNewObservation   K2      b                  K1(=covarianceBetweenNewAndPrior) 
 
-    DoubleMatrix varianceMatrix = varianceForNewObservations.sub(ab.mmul(covarianceBetweenNewAndPrior)); //TODO Maybe we need to swap K1 and K2???
+    DoubleMatrix varianceBetweenPrior = ab.mmul(covarianceBetweenNewAndPrior);
+    DoubleMatrix varianceCovarianceMatrix = varianceForNewObservations.sub(varianceBetweenPrior); //TODO Maybe we need to swap K1 and K2???
 
-    return new MeanVariance(posteriorMeanMatrix, varianceMatrix.diag(), K); //TODO not sure that we need to return only diag elements
+    DoubleMatrix variances = varianceCovarianceMatrix.diag();
+    return new MeanVariance(posteriorMeanMatrix, variances, K); //TODO not sure that we need to return only diag elements
   }
 
   DoubleMatrix combineKMatrices(DoubleMatrix covariancePrior, DoubleMatrix covarianceBetweenNewAndPrior, DoubleMatrix k2, DoubleMatrix varianceForNewObservation) {
