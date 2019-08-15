@@ -129,7 +129,7 @@ public class EITest {
   @Test
   public void compute_tradeoff2() {
 
-    // Case 1 lloks like when tradeoff is big then it makes it a hard threshold and the bigger/further mean from incumbent the higher af score
+    // Case 1 looks like when tradeoff is big then it makes it a hard threshold and the bigger/further mean from incumbent the higher af score
     // The smallest tradeoff (but >0) the easier it is for variance to win against mean
     double tradeoff = -1.0;
     EI ei = new EI(tradeoff, true);

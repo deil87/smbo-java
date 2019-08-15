@@ -2,6 +2,7 @@ package smbo;
 
 import org.jblas.DoubleMatrix;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunction> {
@@ -62,22 +63,9 @@ public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunc
   
   public abstract AF acquisitionFunction();
 
-  public abstract EvaluatedGridEntry objectiveFunction(GridEntry entry);
+  public abstract EvaluatedGridEntry evaluateWithObjectiveFunction(GridEntry entry);
 
-  public abstract DoubleMatrix getNextBestCandidateForEvaluation() throws SMBOSearchCompleted;
-
-  /*public EvaluatedGE convertToMtx(ArrayList<EvaluatedGridEntry> evaluatedGridEntries) {
-
-    double[] gridEntries = new double[evaluatedGridEntries.size()];
-    double[] gridEntriesResponseValues = new double[evaluatedGridEntries.size()];
-    int i = 0;
-    for(EvaluatedGridEntry entry: evaluatedGridEntries ) {
-      gridEntries[i] = (double) entry._entry.getEntry().get("X");
-      gridEntriesResponseValues[i] = entry.evaluatedRes;
-      i++;
-    }
-    return new EvaluatedGE(new DoubleMatrix(gridEntries), new DoubleMatrix(gridEntriesResponseValues));
-  }*/
+  public abstract DoubleMatrix getNextBestCandidateForEvaluation() throws SMBOSearchCompleted, IOException;
 
   public static class SMBOSearchCompleted extends Exception{ }
 

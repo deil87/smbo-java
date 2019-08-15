@@ -78,4 +78,18 @@ public class GPSurrogateModelTest extends TestUtils {
     DoubleMatrix expected = new DoubleMatrix(4, 4, 1, 2, 3, 13, 4, 5, 6, 14, 7, 8, 9, 15, 10,11,12,16);
     assertEquals(expected, matrix);
   }
+
+  @Test
+  public void gridSearchOverGPsHyperparameters() {
+
+    GPSurrogateModel gpSurrogateModel = new GPSurrogateModel();
+    DoubleMatrix observed = new DoubleMatrix(1, 5, 1,2,3,4,5);
+
+    DoubleMatrix observedMeans = new DoubleMatrix(5, 1, 1,1.2,1.1,0.9,0.95);
+    double[] hps = new GPSurrogateModel().gridSearchOverGPsHyperparameters(observed, observedMeans);
+
+    System.out.println("Sigma:" + hps[0]);
+    System.out.println("Ell:" + hps[1]);
+
+  }
 }

@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.XYChart;
+import smbo.of.ObjectiveFunction;
+import smbo.of.SinOFDefault;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,9 +81,11 @@ public class GPSurrogateModelSinBenchmark {
     HashMap<String, Object[]> grid = new HashMap<>();
     grid.put("X", hyperParametersGrid);
 
-    GPSMBO gpsmbo = new GPSMBO(grid, true, 1234);
+    ObjectiveFunction sinOF = new SinOFDefault();
 
-      DoubleMatrix nextBestHyperparameters = gpsmbo.getNextBestCandidateForEvaluation();
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
+
+    DoubleMatrix nextBestHyperparameters = gpsmbo.getNextBestCandidateForEvaluation();
 
   }
 

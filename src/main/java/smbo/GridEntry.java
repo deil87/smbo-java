@@ -2,7 +2,7 @@ package smbo;
 
 import java.util.Map;
 
-class GridEntry {
+public class GridEntry {
   Map<String, Object> _item;
   int _hash;
 

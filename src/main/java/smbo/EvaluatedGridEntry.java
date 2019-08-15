@@ -1,6 +1,6 @@
 package smbo;
 
-class EvaluatedGridEntry {
+public class EvaluatedGridEntry {
   GridEntry _entry;
 
   double evaluatedRes = Double.MIN_VALUE;
