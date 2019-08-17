@@ -18,8 +18,8 @@ public class GPSurrogateModelTest extends TestUtils {
 
   @Test
   public void posteriorMeanAndVariance() {
-    int sigma = 1;
-    int ell = 1;
+    double sigma = 0.1; // gamma =  1 / (2* sigma^2)  ie o.1 sigma -> gamma = 50
+    double ell = 1;
     GPSurrogateModel gpSurrogateModel = new GPSurrogateModel(sigma, ell);
     DoubleMatrix observed = new DoubleMatrix(1, 3, 1, 2, 3);
     DoubleMatrix observedMeans = new DoubleMatrix(3, 1, 42, 43, 44);
@@ -27,10 +27,12 @@ public class GPSurrogateModelTest extends TestUtils {
     DoubleMatrix prior = gpSurrogateModel.getCovarianceMtxWithGaussianKernel(sigma, ell, observed, observed);
 
     // When we increase value X for new observation we move closer to N(0, 1) value.
-    DoubleMatrix newObservation = new DoubleMatrix(1, 1, 3.1);
+    DoubleMatrix newObservation = new DoubleMatrix(1, 1, 3.00001);
     GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.posteriorMeanAndVariance(sigma, ell, prior, observed, newObservation, observedMeans);
     double mean = meanVariance.getMean().get(0, 0);
     double variance = meanVariance.getVariance().get(0, 0);
+    multilinePrint("Mean:", meanVariance.getMean());
+    multilinePrint("Variance:", meanVariance.getVariance());
     assertTrue(mean < 44 && mean > 43);
     assertTrue(variance < 0.01 && variance > 0);
 

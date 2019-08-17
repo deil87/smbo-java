@@ -295,7 +295,7 @@ public class GPSMBOTest {
     double tradeoff = 0.0;
     EI ei = new EI(tradeoff, true);
 
-    int size = 10;
+    int size = 25;
     Double[] gridEntries = new Double[size*10];
     int i;
     for (i = 0; i < size*10; i++) {

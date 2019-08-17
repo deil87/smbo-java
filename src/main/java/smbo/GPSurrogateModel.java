@@ -60,7 +60,8 @@ public class GPSurrogateModel extends SurrogateModel{
    * Matrices x1 and x2 are supposed to be a row-vectors as we are computing distances between columns */
   DoubleMatrix getCovarianceMtxWithGaussianKernel(double sigma, double ell, DoubleMatrix x1, DoubleMatrix x2) {
     DoubleMatrix d = Geometry.pairwiseSquaredDistances(x1, x2);
-    return exp(d.mul(0.5).div(ell).neg()).mul(sigma * sigma);
+    DoubleMatrix mainTerm = d.mul(0.5).div(ell).div(sigma * sigma);
+    return exp(mainTerm.neg());
   }
 
   //  K0 + sigma^2*I    K1
@@ -71,8 +72,8 @@ public class GPSurrogateModel extends SurrogateModel{
     int n = observedData.columns;
     assert priorMeans.rows == n;
 
-    double sigmaBest = 0.1;
-    double ellBest = 0.5;
+    double sigmaBest = sigma;
+    double ellBest = ell;
     boolean isGSOverGPHyperparametersEnabled = false;
     if(isGSOverGPHyperparametersEnabled) {
       // but in that way our covariancePrior was computed with different sigma and ell from previous iteration
@@ -85,9 +86,9 @@ public class GPSurrogateModel extends SurrogateModel{
 
     DoubleMatrix covarianceBetweenNewAndPrior = getCovarianceMtxWithGaussianKernel(sigmaBest, ellBest, observedData, unobservedEntrie);   // K1
     DoubleMatrix K2 = covarianceBetweenNewAndPrior.transpose();
-    DoubleMatrix varianceForNewObservations = getCovarianceMtxWithGaussianKernel(sigmaBest, ellBest, unobservedEntrie, unobservedEntrie); // K3
+    DoubleMatrix covarianceForNewObservations = getCovarianceMtxWithGaussianKernel(sigmaBest, ellBest, unobservedEntrie, unobservedEntrie); // K3
 
-    DoubleMatrix K = combineKMatrices(covariancePrior, covarianceBetweenNewAndPrior, K2, varianceForNewObservations);
+    DoubleMatrix K = combineKMatrices(covariancePrior, covarianceBetweenNewAndPrior, K2, covarianceForNewObservations);
 
     // Step 1: Compute means
 
@@ -97,8 +98,8 @@ public class GPSurrogateModel extends SurrogateModel{
     //           K2                 b                  c (= priorMeans)
 
     // Note: without multiplying by sigma^2 here I was getting negative variances. Because probably in one part of the overall formula I WAS using sigma but here I did not (just eye(n))
-    DoubleMatrix noiseIdentity = eye(n).mul(sigmaBest * sigmaBest);
-    DoubleMatrix b = Solve.solve(covariancePrior, noiseIdentity); // solve with Identity B matrix in Ax=B will return us inverse.
+    DoubleMatrix identity = eye(n)/*.mul(sigmaBest * sigmaBest)*/;
+    DoubleMatrix b = Solve.solve(covariancePrior.add(eye(n).mul(sigmaBest * sigmaBest)), identity); // solve with Identity B matrix in Ax=B will return us inverse.
 
     DoubleMatrix ab = K2.mmul(b);
     DoubleMatrix posteriorMeanMatrix = ab.mmul(priorMeans);
@@ -111,7 +112,7 @@ public class GPSurrogateModel extends SurrogateModel{
     // varianceForNewObservation   K2      b                  K1(=covarianceBetweenNewAndPrior) 
 
     DoubleMatrix varianceBetweenPrior = ab.mmul(covarianceBetweenNewAndPrior);
-    DoubleMatrix varianceCovarianceMatrixForNewObservation = varianceForNewObservations.sub(varianceBetweenPrior); //TODO Maybe we need to swap K1 and K2???
+    DoubleMatrix varianceCovarianceMatrixForNewObservation = covarianceForNewObservations.sub(varianceBetweenPrior); //TODO Maybe we need to swap K1 and K2???
 
     // Note: we are taking abs() as variance in prior could be bigger than variance in our new observations
     //TODO not sure that we need to return only diag elements
