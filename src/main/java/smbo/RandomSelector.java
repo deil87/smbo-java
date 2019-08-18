@@ -77,7 +77,7 @@ class RandomSelector {
     return _visitedPermutationHashes;
   }
 
-  private int hashIntArray(int[] ar) {
+  private static int hashIntArray(int[] ar) {
     Integer[] hashMe = new Integer[ar.length];
     for (int i = 0; i < ar.length; i++)
       hashMe[i] = ar[i];

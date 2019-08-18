@@ -13,6 +13,9 @@ public class EI extends AcquisitionFunction {
 
   private double _incumbent = 0.0;
   private boolean _incumbentColdStartSetupHappened = false;
+
+  // This is an analogy to the concept of Simulated Annealing.
+  private int _explorationEnergy = 10;
   public boolean isIncumbentColdStartSetupHappened() {
     return _incumbentColdStartSetupHappened;
   }
@@ -90,7 +93,13 @@ public class EI extends AcquisitionFunction {
   }
 
   DoubleMatrix computeMTerm(DoubleMatrix means) {
-    return _theBiggerTheBetter ? means.sub(_incumbent).add(_tradeOff) : means.mul(-1).sub(_tradeOff).add(_incumbent);
+    double currentTradeOff = _tradeOff;
+    if(_explorationEnergy > 0) {
+      currentTradeOff = _theBiggerTheBetter ? -_incumbent: _incumbent;
+      _explorationEnergy--;
+      System.out.println("Exploration energy left: " + _explorationEnergy);
+    }
+    return _theBiggerTheBetter ? means.sub(_incumbent).add(currentTradeOff) : means.mul(-1).sub(currentTradeOff).add(_incumbent);
   }
 
 }

@@ -7,6 +7,8 @@ import org.knowm.xchart.style.markers.SeriesMarkers;
 import java.awt.*;
 import java.io.IOException;
 
+import static smbo.GPSMBO.evaluateRowsWithOF;
+
 public class MeanVariancePlotHelper {
 
 
@@ -90,17 +92,4 @@ public class MeanVariancePlotHelper {
 
   }
 
-  //TODO duplicate
-  static private DoubleMatrix evaluateRowsWithOF(GPSMBO gpsmbo, DoubleMatrix unObservedGridEntries) {
-    DoubleMatrix YValDM = null;
-    for(DoubleMatrix row :unObservedGridEntries.rowsAsList()) {
-      DoubleMatrix evaluationDM = gpsmbo.objectiveFunction(row);
-      if(YValDM == null) {
-        YValDM = evaluationDM;
-      } else {
-        YValDM = DoubleMatrix.concatVertically(YValDM, evaluationDM);
-      }
-    }
-    return YValDM;
-  }
 }

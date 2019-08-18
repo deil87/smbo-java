@@ -77,8 +77,13 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     return _of.evaluate(entry);
   }
 
-  public DoubleMatrix objectiveFunction(DoubleMatrix entry) {
-    return MatrixFunctions.sin(entry.div(2.5)).mul(5);
+  public EvaluatedGridEntry objectiveFunction(DoubleMatrix entry) {
+    assert entry.rows == 1;
+    Map<String, Object> map = new HashMap<>();
+    for(double value : entry.toArray()) {
+      map.put("X1", value);
+    }
+    return evaluateWithObjectiveFunction(new GridEntry(map, 0));
   }
 
 
@@ -178,6 +183,22 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     }
     return indexOfTheBiggestMeanImprovement;
 //    return means.get(indexOfTheBiggestMeanImprovement);
+  }
+
+  // Helper method that will evaluate multiple rows with OF
+  public static DoubleMatrix evaluateRowsWithOF(GPSMBO gpsmbo, DoubleMatrix unObservedGridEntries) {
+    DoubleMatrix YValDM = null;
+    for(DoubleMatrix row :unObservedGridEntries.rowsAsList()) {
+      EvaluatedGridEntry evaluatedGridEntry = gpsmbo.objectiveFunction(row);
+      DoubleMatrix evaluationDM = evaluatedGridEntry.getEvaluatedEntryAsMtx().getColumn(row.columns);
+      if(YValDM == null) {
+        YValDM = evaluationDM;
+      } else {
+        YValDM = DoubleMatrix.concatVertically(YValDM, evaluationDM);
+      }
+    }
+//    YValDM.print();
+    return YValDM;
   }
 
   @Override
