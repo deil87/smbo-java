@@ -2,7 +2,7 @@ package smbo;
 
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
-import utils.TestUtils;
+import utils.DoubleMatrixUtils;
 
 import static org.junit.Assert.*;
 
@@ -35,7 +35,7 @@ public class EITest {
     DoubleMatrix means = new DoubleMatrix(5,1, 0, 1,4,9,16);
     DoubleMatrix pdf = ei.computePDF(means);
 
-    TestUtils.multilinePrint("PDF", pdf);
+    DoubleMatrixUtils.multilinePrint("PDF", pdf);
 
     // For  ~ N( 0, 1 )
     assertEquals(0.398942, pdf.get(0,0), 1e-5);
@@ -50,7 +50,7 @@ public class EITest {
     DoubleMatrix means = new DoubleMatrix(5,1, 0, 1,4,9,16);
     DoubleMatrix cdf = ei.computeCDF(means);
 
-    TestUtils.multilinePrint("CDF", cdf);
+    DoubleMatrixUtils.multilinePrint("CDF", cdf);
     // For  ~ N( 0, 1 ) CDF for mean value should return half of the area of a bell-curve i.e. 0.5
     assertEquals(0.5, cdf.get(0,0), 1e-5);
   }
@@ -73,7 +73,7 @@ public class EITest {
       assertTrue(expectedToBeTheHighest >= row.get(0,0));
     }
 
-    TestUtils.multilinePrint("AF", af);
+    DoubleMatrixUtils.multilinePrint("AF", af);
   }
 
   // Given same variance we are selecting highest means
@@ -95,7 +95,7 @@ public class EITest {
       assertTrue(expectedToBeTheHighest >= row.get(0,0));
     }
 
-    TestUtils.multilinePrint("AF", af);
+    DoubleMatrixUtils.multilinePrint("AF", af);
   }
 
   //
@@ -123,7 +123,7 @@ public class EITest {
 //      assertTrue(expectedHighest >= row.get(0,0));
 //    }
 
-    TestUtils.multilinePrint("AF", af);
+    DoubleMatrixUtils.multilinePrint("AF", af);
   }
 
   @Test
@@ -142,7 +142,7 @@ public class EITest {
     int indexOfHighestVariance = 3;
     double expectedValueOfAF = af.get(indexOfHighestVariance, 0);
 
-    TestUtils.multilinePrint("AF", af);
+    DoubleMatrixUtils.multilinePrint("AF", af);
 
 //    for( DoubleMatrix row :af.rowsAsList() ) {
 //      assertTrue(expectedValueOfAF >= row.get(0,0));

@@ -1,9 +1,9 @@
 package smbo;
 
 import org.jblas.DoubleMatrix;
-import org.jblas.MatrixFunctions;
 import org.jblas.ranges.IntervalRange;
 import smbo.of.ObjectiveFunction;
+import utils.DoubleMatrixUtils;
 
 import java.io.IOException;
 import java.util.*;
@@ -13,22 +13,36 @@ import java.util.*;
  */
 public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TODO maybe we don't need generic type AcquisitionFunction
 
-  ObjectiveFunction _of;
+  private ObjectiveFunction _of;
   // Defaults
-  int priorSize = 5;
-  //Move to SMBO
-  RandomSelector _randomSelector;
+  private int priorSize = 5;
+  private RandomSelector _randomSelector;   //TODO Move to SMBO
+
+  final private String[] gridKeysOriginalOrder; // TODO Maybe move it to SMBO? it does not belong to SMBO abtraction but we need it in all implementations of SMBO.
 
   List<GPSurrogateModel.MeanVariance> meanVariancesHistory = new ArrayList<>();
 
   private boolean theBiggerTheBetter;
 
-  public GPSMBO(ObjectiveFunction of, HashMap<String, Object[]> grid, boolean theBiggerTheBetter, long seed) {
+  boolean keepMeanHistory = false;
+
+  /**
+   *  Default constructor with MaxImprovementAF acquisition function
+   * @param of
+   * @param grid
+   * @param theBiggerTheBetter
+   * @param seed
+   */
+  public GPSMBO(ObjectiveFunction of, SortedMap<String, Object[]> grid, boolean theBiggerTheBetter, long seed) {
     this(of, grid, new MaxImprovementAF(theBiggerTheBetter), theBiggerTheBetter, seed);
   }
 
-  public GPSMBO(ObjectiveFunction of, HashMap<String, Object[]> grid, AcquisitionFunction af, boolean theBiggerTheBetter, long seed) {
+  public GPSMBO(ObjectiveFunction of, SortedMap<String, Object[]> grid, AcquisitionFunction af, boolean theBiggerTheBetter, long seed) {
     super(grid);
+
+    gridKeysOriginalOrder = grid.keySet().toArray(new String[]{});
+    if(gridKeysOriginalOrder.length > 1) System.out.println("XChart does not support 3D plots and we can't display more then one feature");
+
     _of = of;
     _randomSelector = new RandomSelector(grid, seed);
 //    _surrogateModel = new GPSurrogateModel(0.6, 0.5);
@@ -68,22 +82,34 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     }
   }
 
+  // TODO we probably don't need `observedGridEntries` parameter
   DoubleMatrix selectBestBasedOnResponse(DoubleMatrix observedGridEntries) {
     int indexOfTheRowWithBestResponse = observedGridEntries.getColumn(observedGridEntries.columns - 1).columnArgmaxs()[0];
     return observedGridEntries.getRow(indexOfTheRowWithBestResponse);
+  }
+
+  // TODO we probably don't need `observedGridEntries` parameter
+  public int selectBestIndexBasedOnResponse(DoubleMatrix observedGridEntries) {
+    int indexOfTheRowWithBestResponse = observedGridEntries.getColumn(observedGridEntries.columns - 1).columnArgmaxs()[0];
+    return indexOfTheRowWithBestResponse;
   }
 
   public EvaluatedGridEntry evaluateWithObjectiveFunction(GridEntry entry) {
     return _of.evaluate(entry);
   }
 
+  // Note: it is assumed that order of columns in {@code entry} was not changed and match order from SortedMap representation of grid entry
   public EvaluatedGridEntry objectiveFunction(DoubleMatrix entry) {
-    assert entry.rows == 1;
-    Map<String, Object> map = new HashMap<>();
+
+    SortedMap<String, Object> gridEntryAsMap = Collections.synchronizedSortedMap(new TreeMap());
+    int columnIdx = 0;
     for(double value : entry.toArray()) {
-      map.put("X1", value);
+      String originalFeatureName = gridKeysOriginalOrder[columnIdx];
+      gridEntryAsMap.put(originalFeatureName, value);
+      columnIdx++;
     }
-    return evaluateWithObjectiveFunction(new GridEntry(map, 0));
+
+    return evaluateWithObjectiveFunction(new GridEntry(gridEntryAsMap, 0));
   }
 
 
@@ -104,13 +130,24 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.evaluate(_observedGridEntries, _unObservedGridEntries.transpose()); // TODO should we always keep it transposed?
 
     //Saving this to be able to draw confidence intervals and see predictions
-    meanVariancesHistory.add(meanVariance);
-
-    MeanVariancePlotHelper.plotWithVarianceIntervals(_unObservedGridEntries, _observedGridEntries, null, meanVariance,  this);
+    if(keepMeanHistory) meanVariancesHistory.add(meanVariance);
 
     // Getting acquisition function evaluations for all suggestions from surrogate model
     DoubleMatrix afEvaluations = acquisitionFunction().compute(meanVariance.getMean(), meanVariance.getVariance());
 
+    if(gridKeysOriginalOrder.length == 1) {
+      MeanVariancePlotHelper.plotWithVarianceIntervals(_unObservedGridEntries, _observedGridEntries, null, meanVariance, this);
+      //TODO we probably want to draw acquisition function as well
+      DoubleMatrix meanAndVariance = DoubleMatrix.concatHorizontally(meanVariance.getMean(), meanVariance.getVariance());
+      DoubleMatrix combinedForDisplayingMtx = DoubleMatrix.concatHorizontally(DoubleMatrix.concatHorizontally(_unObservedGridEntries, meanAndVariance), afEvaluations);
+      DoubleMatrixUtils.multilinePrint("Features [0...N-2], Mean and Variance ( observed = " + _observedGridEntries.rows + " )", combinedForDisplayingMtx);
+    }
+    else {
+      //TODO duplicate 3rows ^^^
+      DoubleMatrix meanAndVariance = DoubleMatrix.concatHorizontally(meanVariance.getMean(), meanVariance.getVariance());
+      DoubleMatrix combinedForDisplayingMtx = DoubleMatrix.concatHorizontally(DoubleMatrix.concatHorizontally(_unObservedGridEntries, meanAndVariance), afEvaluations);
+      DoubleMatrixUtils.multilinePrint("Features [0...N-2], Mean and Variance ( observed = " + _observedGridEntries.rows + " )", combinedForDisplayingMtx);
+    }
 
     int bestIndex = selectBest( afEvaluations);
 
@@ -139,7 +176,6 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
         double[] nextRowToAppend = new double[next.getEntry().size()];
         int colIdx = 0;
 
-        assert next.getEntry().size() == 1 : "order of the entries of the map is not guaranteed. Consider to change representation of the GridEntry or control the way how we fill double[]";
         for(Map.Entry<String, Object> entry: next.getEntry().entrySet()) {
 
           nextRowToAppend[colIdx] = (double) entry.getValue();
@@ -149,7 +185,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
         _unObservedGridEntries = _unObservedGridEntries.rows == 0 ? newMaterializedGridEntry : DoubleMatrix.concatVertically(_unObservedGridEntries, newMaterializedGridEntry);
       }
     } catch (RandomSelector.NoUnexploredGridEntitiesLeft ex) {
-      System.out.println("Random selector stopped with NoUnexploredGridEntitiesLeft.");
+      System.out.println("Random selector stopped with NoUnexploredGridEntitiesLeft. Total number of exploredCount grid items: " + ex.exploredCount);
     }
   }
 
@@ -158,10 +194,9 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
       for (int j = 0; j < priorSize; j++) {
         // Select randomly and get evaluations from our objective function
         GridEntry next = _randomSelector.getNext();
-        double[] nextRowToAppend = new double[next.getEntry().size() + 1];
+        double[] nextRowToAppend = new double[next.getEntry().size() + 1]; // TODO why plus one?
         int colIdx = 0;
 
-        assert next.getEntry().size() == 1 : "order of the entries of the map is not guaranteed. Consider to change representation of the GridEntry or control the way how we fill double[]";
         for(Map.Entry<String, Object> entry: next.getEntry().entrySet()) {
 
           nextRowToAppend[colIdx] = (double) entry.getValue();
@@ -207,7 +242,12 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   }
 
   @Override
-  public AcquisitionFunction acquisitionFunction() {
+  public AcquisitionFunction acquisitionFunction(){
+//    try {
+//      return _acquisitionFunction.cloneTyped();
+//    } catch (CloneNotSupportedException ex) {
+//      throw new IllegalStateException("Cloning of AF failed");
+//    }
     return _acquisitionFunction;
   }
 }

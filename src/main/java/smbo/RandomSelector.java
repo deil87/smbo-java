@@ -5,26 +5,26 @@ import java.util.*;
 
 class RandomSelector {
 
-  HashMap<String, Object[]> _grid;
+  SortedMap<String, Object[]> _grid;
   String[] _dimensionNames;
 
   private int _spaceSize;
   transient private Set<Integer> _visitedPermutationHashes = new LinkedHashSet<>();
   Random _randomGen;
 
-  public RandomSelector(HashMap<String, Object[]> grid, long seed) {
+  public RandomSelector(SortedMap<String, Object[]> grid, long seed) {
     _grid = grid;
     _randomGen = new Random(seed);
     _dimensionNames = _grid.keySet().toArray(new String[0]);
     _spaceSize = calculateSpaceSize(_grid);
   }
 
-  public RandomSelector(HashMap<String, Object[]> grid) {
+  public RandomSelector(SortedMap<String, Object[]> grid) {
     this(grid, -1);
   }
 
   GridEntry getNext() throws NoUnexploredGridEntitiesLeft {
-    Map<String, Object> _next = new HashMap<>();
+    SortedMap<String, Object> _next = Collections.synchronizedSortedMap(new TreeMap());
     int[] indices = nextIndices();
     for (int i = 0; i < indices.length; i++) {
       _next.put(_dimensionNames[i], _grid.get(_dimensionNames[i])[indices[i]]);
@@ -37,7 +37,7 @@ class RandomSelector {
     int[] chosenIndices =  new int[_dimensionNames.length];
 
     if(_visitedPermutationHashes.size() == _spaceSize) {
-      throw new NoUnexploredGridEntitiesLeft();
+      throw new NoUnexploredGridEntitiesLeft(_spaceSize);
     }
 
     int hashOfIndices = 0;
@@ -60,7 +60,12 @@ class RandomSelector {
     return _spaceSize;
   }
 
-  public static class NoUnexploredGridEntitiesLeft extends Exception{ }
+  public static class NoUnexploredGridEntitiesLeft extends Exception{
+    public int exploredCount;
+    public NoUnexploredGridEntitiesLeft(int exploredCount) {
+      this.exploredCount = exploredCount;
+    }
+  }
 
   private int calculateSpaceSize(Map<String, Object[]> grid) {
     String[] dimensionNames = grid.keySet().toArray(new String[0]);

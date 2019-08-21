@@ -1,19 +1,17 @@
 package smbo;
 
 import org.jblas.DoubleMatrix;
-import org.jblas.ranges.IntervalRange;
 import org.junit.Test;
-import org.knowm.xchart.*;
-import org.knowm.xchart.style.markers.SeriesMarkers;
 import smbo.of.ObjectiveFunction;
 import smbo.of.SinOFDefault;
-import utils.TestUtils;
+import utils.DoubleMatrixUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static org.junit.Assert.*;
-import static smbo.GPSMBO.evaluateRowsWithOF;
 
 public class GPSMBOTest {
 
@@ -29,7 +27,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -41,7 +39,7 @@ public class GPSMBOTest {
 
     assertEquals(5, gpsmbo.getObservedGridEntries().get(0,0), 1e-5);
     assertEquals(42, gpsmbo.getObservedGridEntries().get(0,1), 1e-5);
-    TestUtils.multilinePrint(gpsmbo.getObservedGridEntries());
+    DoubleMatrixUtils.multilinePrint(gpsmbo.getObservedGridEntries());
 
   }
 
@@ -56,7 +54,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -66,7 +64,7 @@ public class GPSMBOTest {
     gpsmbo.initializePriorOfSMBOWithBatchEvaluation();
 
 
-    TestUtils.multilinePrint(gpsmbo.getObservedGridEntries());
+    DoubleMatrixUtils.multilinePrint(gpsmbo.getObservedGridEntries());
     assertEquals(10, gpsmbo.getObservedGridEntries().rows, 1e-5);
   }
 
@@ -81,8 +79,9 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
-    grid.put("X", gridEntries);
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
+    grid.put("X1", gridEntries);
+    grid.put("X2", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
 
@@ -91,7 +90,7 @@ public class GPSMBOTest {
     gpsmbo.initializePriorOfSMBOWithBatchEvaluation(); // This will take 10 entries for prior
     gpsmbo.materializeGrid(); // Rest 150 - 10 will be materialized
 
-    TestUtils.multilinePrint(gpsmbo.getUnObservedGridEntries());
+    DoubleMatrixUtils.multilinePrint(gpsmbo.getUnObservedGridEntries());
     assertEquals(140, gpsmbo.getUnObservedGridEntries().rows, 1e-5);
   }
 
@@ -105,7 +104,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -125,7 +124,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -140,7 +139,7 @@ public class GPSMBOTest {
     double rowWithBestSuggestion = unObservedGridEntries.getRow(bestIndex).get(0,0);
     gpsmbo.dropSuggestionFromUnObservedGridEntries(bestIndex);
 
-    TestUtils.multilinePrint(gpsmbo.getUnObservedGridEntries());
+    DoubleMatrixUtils.multilinePrint(gpsmbo.getUnObservedGridEntries());
 
     double[] unobservedValues = gpsmbo.getUnObservedGridEntries().toArray();
     for(double unobserved : unobservedValues) {
@@ -159,7 +158,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -169,7 +168,7 @@ public class GPSMBOTest {
     DoubleMatrix observed = new DoubleMatrix(5, 2, 1,2,3,4,5, 8,7,9,19,5);
     DoubleMatrix best = gpsmbo.selectBestBasedOnResponse(observed);
 
-    TestUtils.multilinePrint("Best row", best);
+    DoubleMatrixUtils.multilinePrint("Best row", best);
 
     assertEquals(new DoubleMatrix(1,2,4, 19), best);
   }
@@ -184,7 +183,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -206,7 +205,7 @@ public class GPSMBOTest {
       gridEntries[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
@@ -226,7 +225,7 @@ public class GPSMBOTest {
 
     }
 
-    TestUtils.multilinePrint("Prior:", gpsmbo.getObservedGridEntries());
+    DoubleMatrixUtils.multilinePrint("Prior:", gpsmbo.getObservedGridEntries());
 
     for(int si = 0; si < suggestions.length ; si++) {
       System.out.println(si + ": " + suggestions[si]);

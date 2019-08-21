@@ -4,6 +4,7 @@ import org.jblas.DoubleMatrix;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.SortedMap;
 
 public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunction> {
 
@@ -11,13 +12,13 @@ public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunc
   protected AF _acquisitionFunction;
   protected boolean _theBiggerTheBetter;
 
-  public HashMap<String, Object[]> getGrid() {
+  public SortedMap<String, Object[]> getGrid() {
     return _grid;
   }
 
-  private final HashMap<String, Object[]> _grid;
+  private final SortedMap<String, Object[]> _grid;
 
-  public SMBO(HashMap<String, Object[]> grid) {
+  public SMBO(SortedMap<String, Object[]> grid) {
     _grid = grid;
   }
 
@@ -61,7 +62,7 @@ public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunc
 
   public abstract SM surrogateModel();
   
-  public abstract AF acquisitionFunction();
+  public abstract AF acquisitionFunction() throws CloneNotSupportedException;
 
   public abstract EvaluatedGridEntry evaluateWithObjectiveFunction(GridEntry entry);
 

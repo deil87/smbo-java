@@ -1,12 +1,12 @@
 package smbo;
 
-import java.util.Map;
+import java.util.SortedMap;
 
 public class GridEntry {
-  Map<String, Object> _item;
+  SortedMap<String, Object> _item;
   int _hash;
 
-  public Map<String, Object> getEntry() {
+  public SortedMap<String, Object> getEntry() {
     return _item;
   }
 
@@ -14,7 +14,7 @@ public class GridEntry {
     return _hash;
   }
 
-  public GridEntry(Map<String, Object> item, int hash) {
+  public GridEntry(SortedMap<String, Object> item, int hash) {
     _item = item;
     _hash = hash;
 

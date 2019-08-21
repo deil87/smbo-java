@@ -3,10 +3,7 @@ package smbo;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class RandomSelectorTest {
 
@@ -14,7 +11,7 @@ public class RandomSelectorTest {
   public void getNext() throws RandomSelector.NoUnexploredGridEntitiesLeft {
 
     long seed = 12345;
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", new Object[]{1,2,3,4,5,6,7,8,9});
 
     RandomSelector randomSelector = new RandomSelector(grid, seed);

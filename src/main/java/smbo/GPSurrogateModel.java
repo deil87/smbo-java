@@ -2,11 +2,10 @@ package smbo;
 
 import org.jblas.*;
 import org.jblas.ranges.IntervalRange;
-import utils.TestUtils;
 
 import static org.jblas.DoubleMatrix.eye;
 import static org.jblas.MatrixFunctions.exp;
-import static utils.TestUtils.multilinePrint;
+import static utils.DoubleMatrixUtils.multilinePrint;
 
 /**
  * This surrogate model is based on Gaussian multivariate process regression
@@ -156,7 +155,7 @@ public class GPSurrogateModel extends SurrogateModel{
     DoubleMatrix onlyMeans = observedGridEntriesWithMeans.getColumn(observedGridEntriesWithMeans.columns - 1);
 
     ifNeededInitCovariancePrior(onlyFeatures); // maybe this update should come from outside of surrogate model similar to single entry updates
-//    TestUtils.multilinePrint("Covariance prior:", covariancePrior);
+//    DoubleMatrixUtils.multilinePrint("Covariance prior:", covariancePrior);
 
     //Once we got prior covariance matrix we can predict for all the other unobserved grid entries
     MeanVariance meanVariance = posteriorMeanAndVariance(sigma, ell, covariancePrior, onlyFeatures, unObservedGridEntries, onlyMeans);

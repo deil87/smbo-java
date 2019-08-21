@@ -2,11 +2,11 @@ package smbo;
 
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
-import utils.TestUtils;
+import utils.DoubleMatrixUtils;
 
 import static org.junit.Assert.*;
 
-public class GPSurrogateModelTest extends TestUtils {
+public class GPSurrogateModelTest extends DoubleMatrixUtils {
 
   @Test
   public void getCovarianceMtxWithGaussianKernel() {

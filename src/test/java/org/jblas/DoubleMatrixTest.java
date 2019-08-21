@@ -2,7 +2,7 @@ package org.jblas;
 
 import org.junit.Assert;
 import org.junit.Test;
-import utils.TestUtils;
+import utils.DoubleMatrixUtils;
 
 public class DoubleMatrixTest {
 
@@ -15,7 +15,7 @@ public class DoubleMatrixTest {
   @Test
   public void argMaxCols_argMinCols() {
     DoubleMatrix matrix = new DoubleMatrix(2, 5, 1,2,3,4,5, 6,7,8,9,10);
-    TestUtils.multilinePrint(matrix);
+    DoubleMatrixUtils.multilinePrint(matrix);
     int[] columnArgmaxs = matrix.columnArgmaxs();
     Assert.assertEquals(1, columnArgmaxs[4], 1e-5);
 

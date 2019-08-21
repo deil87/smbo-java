@@ -10,8 +10,7 @@ import smbo.of.ObjectiveFunction;
 import smbo.of.SinOFDefault;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -78,7 +77,7 @@ public class GPSurrogateModelSinBenchmark {
       hyperParametersGrid[i] = (double) i / 10;
     }
 
-    HashMap<String, Object[]> grid = new HashMap<>();
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", hyperParametersGrid);
 
     ObjectiveFunction sinOF = new SinOFDefault();

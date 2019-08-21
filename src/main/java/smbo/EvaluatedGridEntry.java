@@ -2,6 +2,8 @@ package smbo;
 
 import org.jblas.DoubleMatrix;
 
+import java.util.Map;
+
 public class EvaluatedGridEntry {
   GridEntry _entry;
 
@@ -19,8 +21,16 @@ public class EvaluatedGridEntry {
   }
 
   public DoubleMatrix getEvaluatedEntryAsMtx() {
-    assert getEntry()._item.size() == 1 : "We do not support multi-variable cases yet. For that we will need to guarantee order of the keys in the Map.";
     assert evaluatedRes != Double.MIN_VALUE : "EvaluatedGridEntry was not evaluated";
-    return new DoubleMatrix(1, 2, (double) getEntry()._item.get("X1"), evaluatedRes);
+
+    int numberOfFeatures = getEntry()._item.size();
+    double[] evaluatedRow = new double[numberOfFeatures + 1];
+    int colIdx = 0;
+    for(Map.Entry<String, Object> ge: getEntry()._item.entrySet()) {
+      evaluatedRow[colIdx] = (double) ge.getValue();
+      colIdx++;
+    }
+    evaluatedRow[numberOfFeatures] = evaluatedRes;
+    return new DoubleMatrix(1, evaluatedRow.length, evaluatedRow);
   }
 }

@@ -22,6 +22,10 @@ public class MaxImprovementAF extends AcquisitionFunction {
     _incumbentColdStartSetupHappened = true;
   }
 
+  public double getIncumbent() {
+    return _incumbent;
+  }
+
   public void updateIncumbent(double possiblyNewIncumbent) {
     if(possiblyNewIncumbent > _incumbent) setIncumbent(possiblyNewIncumbent);
   }

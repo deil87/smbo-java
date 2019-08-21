@@ -14,26 +14,37 @@ public class EI extends AcquisitionFunction {
   private double _incumbent = 0.0;
   private boolean _incumbentColdStartSetupHappened = false;
 
-  // This is an analogy to the concept of Simulated Annealing.
+  // This is an analogy to the concept of Simulated Annealing. It is not the same as increasing priorSize by `_explorationEnergy` value. Here we already aware about variance and uncertanty.
   private int _explorationEnergy = 10;
   public boolean isIncumbentColdStartSetupHappened() {
     return _incumbentColdStartSetupHappened;
   }
   
   // Exploration vs. exploitation tradeOff
+  //abs(_tradeOff) should not be bigger than max value of the function.... otherwise we will not be able to take variance into account in EI
+  //          for example _tradeOff = -5 will make it inefficient for function where max(f) = 5
   private double _tradeOff = 0.0;
   
   // Note: we assume that we are using EI for optimisation of metrics that are positive.
   private boolean _theBiggerTheBetter;
 
-  public EI(double tradeoff, boolean theBiggerTheBetter) {
+  public EI(double tradeoff, int explorationEnergy, boolean theBiggerTheBetter) {
     _tradeOff = tradeoff;
+    _explorationEnergy = explorationEnergy;
     _theBiggerTheBetter = theBiggerTheBetter;
   }
 
+  public EI(double tradeoff, boolean theBiggerTheBetter) {
+    this(tradeoff, 10, theBiggerTheBetter);
+  }
+
+  //TODO we should set incumbent right after prior evaluation and not after a first evaluation which is after prior evaluation
   public void setIncumbent(double incumbent) {
     _incumbent = incumbent;
     _incumbentColdStartSetupHappened = true; 
+  }
+  public double getIncumbent() {
+    return _incumbent;
   }
   
   public void updateIncumbent(double possiblyNewIncumbent) {
@@ -94,12 +105,15 @@ public class EI extends AcquisitionFunction {
 
   DoubleMatrix computeMTerm(DoubleMatrix means) {
     double currentTradeOff = _tradeOff;
-    if(_explorationEnergy > 0) {
-      currentTradeOff = _theBiggerTheBetter ? -_incumbent: _incumbent;
-      _explorationEnergy--;
-      System.out.println("Exploration energy left: " + _explorationEnergy);
-    }
-    return _theBiggerTheBetter ? means.sub(_incumbent).add(currentTradeOff) : means.mul(-1).sub(currentTradeOff).add(_incumbent);
+    //TODO subtracting incumbent is already a way to minimize affect of big function values
+//    if(_explorationEnergy > 0) {
+//      currentTradeOff = _theBiggerTheBetter ? -_incumbent: _incumbent;
+//      _explorationEnergy--;
+//      System.out.println("Exploration energy left: " + _explorationEnergy);
+//    }
+    //TODO do we need to .mul(-1) if add and sub are swapped?
+    DoubleMatrix mTermMtx = _theBiggerTheBetter ? means.sub(_incumbent).add(_tradeOff) : means.mul(-1).sub(_tradeOff).add(_incumbent);
+    return mTermMtx;
   }
 
 }
