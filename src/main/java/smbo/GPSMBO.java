@@ -15,7 +15,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
   private ObjectiveFunction _of;
   // Defaults
-  private int priorSize = 5;
+  private final int priorSize;
   private RandomSelector _randomSelector;   //TODO Move to SMBO
 
   final private String[] gridKeysOriginalOrder; // TODO Maybe move it to SMBO? it does not belong to SMBO abtraction but we need it in all implementations of SMBO.
@@ -33,12 +33,22 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
    * @param theBiggerTheBetter
    * @param seed
    */
+  public GPSMBO(ObjectiveFunction of, SortedMap<String, Object[]> grid, boolean theBiggerTheBetter, int priorSize, long seed) {
+    this(of, grid, new MaxImprovementAF(theBiggerTheBetter), theBiggerTheBetter, priorSize, seed);
+  }
+
   public GPSMBO(ObjectiveFunction of, SortedMap<String, Object[]> grid, boolean theBiggerTheBetter, long seed) {
-    this(of, grid, new MaxImprovementAF(theBiggerTheBetter), theBiggerTheBetter, seed);
+    this(of, grid, new MaxImprovementAF(theBiggerTheBetter), theBiggerTheBetter, 5, seed);
   }
 
   public GPSMBO(ObjectiveFunction of, SortedMap<String, Object[]> grid, AcquisitionFunction af, boolean theBiggerTheBetter, long seed) {
+    this(of, grid, af, theBiggerTheBetter, 5, seed);
+  }
+
+  public GPSMBO(ObjectiveFunction of, SortedMap<String, Object[]> grid, AcquisitionFunction af, boolean theBiggerTheBetter, int priorSize, long seed) {
     super(grid);
+
+    this.priorSize = priorSize;
 
     gridKeysOriginalOrder = grid.keySet().toArray(new String[]{});
     if(gridKeysOriginalOrder.length > 1) System.out.println("XChart does not support 3D plots and we can't display more then one feature");
@@ -46,7 +56,8 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     _of = of;
     _randomSelector = new RandomSelector(grid, seed);
 //    _surrogateModel = new GPSurrogateModel(0.6, 0.5);
-    _surrogateModel = new GPSurrogateModel(0.6, 10);  // TODO default sigma and ell are being used
+//    _surrogateModel = new GPSurrogateModel(0.6, 10);  // TODO default sigma and ell are being used
+    _surrogateModel = new GPSurrogateModel(0.2, 6.4);  // TODO default sigma and ell are being used
     _acquisitionFunction = af;
     _theBiggerTheBetter = theBiggerTheBetter;
   }
@@ -168,7 +179,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   }
 
   //materialise rest of the grid
-  void materializeGrid() {
+  public void materializeGrid() {
     System.out.println("Starting to materialize grid...  ( happens as an init phase during first call of `getNextBestCandidateForEvaluation`)");
     try {
       while (true) {

@@ -25,6 +25,9 @@ public class GPSurrogateModel extends SurrogateModel{
   private double _currentBestSigma = -1;
   private double _currentBestEll = -1;
 
+  // Whether we performed hyper parameters search for GP based on prior
+  boolean initialisationHappenedForGPHps = false;
+
   double sigma = 0.6;
   double ell = 2.0;
 
@@ -73,12 +76,13 @@ public class GPSurrogateModel extends SurrogateModel{
 
     double sigmaBest = sigma;
     double ellBest = ell;
-    boolean isGSOverGPHyperparametersEnabled = false;
-    if(isGSOverGPHyperparametersEnabled) {
+    boolean isGSOverGPHyperparametersEnabled = true;
+    if(!initialisationHappenedForGPHps && isGSOverGPHyperparametersEnabled) {
       // but in that way our covariancePrior was computed with different sigma and ell from previous iteration
       double[] bestFoundGPHps = gridSearchOverGPsHyperparameters(observedData, priorMeans);
       sigmaBest = bestFoundGPHps[0];
       ellBest = bestFoundGPHps[1];
+      initialisationHappenedForGPHps = true;
     }
 
     System.out.println("Best sigma:" + sigmaBest + "     Best ell:" + ellBest + ". Number of observed = " + n);
