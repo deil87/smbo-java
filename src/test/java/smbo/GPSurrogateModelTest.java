@@ -58,7 +58,7 @@ public class GPSurrogateModelTest extends DoubleMatrixUtils {
     DoubleMatrix observedMeans = new DoubleMatrix(3, 1, 42, 43, 44);
 
     DoubleMatrix observedWithMeans = DoubleMatrix.concatHorizontally(observed.transpose(), observedMeans);
-    GPSurrogateModel.MeanVariance meanVarianceFromEvaluate = gpSurrogateModel.evaluate(observedWithMeans, unobserved);
+    GPSurrogateModel.MeanVariance meanVarianceFromEvaluate = gpSurrogateModel.predictMeanAndVariance(observedWithMeans, unobserved);
 
     // Let's compare it with directly computed by `posteriorMeanAndVariance`
     DoubleMatrix prior = gpSurrogateModel.getCovarianceMtxWithGaussianKernel(sigma, ell, observed, observed);

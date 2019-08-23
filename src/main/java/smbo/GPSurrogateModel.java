@@ -66,6 +66,19 @@ public class GPSurrogateModel extends SurrogateModel{
     return exp(mainTerm.neg());
   }
 
+  //TODO we can keep flag/state in GPSMBO and
+  public void performHpsGridSearchAndUpdateHps(DoubleMatrix observedDataOnlyFeatures, DoubleMatrix means) {
+    boolean isGSOverGPHyperparametersEnabled = true;
+    if(!initialisationHappenedForGPHps && isGSOverGPHyperparametersEnabled) {
+      // but in that way our covariancePrior was computed with different sigma and ell from previous iteration
+      double[] bestFoundGPHps = gridSearchOverGPsHyperparameters(observedDataOnlyFeatures, means);
+      sigma = bestFoundGPHps[0];
+      ell = bestFoundGPHps[1];
+      System.out.println("Best sigma:" + sigma + "     Best ell:" + ell + ". Number of observed = " + observedDataOnlyFeatures.rows);
+      initialisationHappenedForGPHps = true;
+    }
+  }
+
   //  K0 + sigma^2*I    K1
   //  K2                K3
   //
@@ -76,16 +89,8 @@ public class GPSurrogateModel extends SurrogateModel{
 
     double sigmaBest = sigma;
     double ellBest = ell;
-    boolean isGSOverGPHyperparametersEnabled = true;
-    if(!initialisationHappenedForGPHps && isGSOverGPHyperparametersEnabled) {
-      // but in that way our covariancePrior was computed with different sigma and ell from previous iteration
-      double[] bestFoundGPHps = gridSearchOverGPsHyperparameters(observedData, priorMeans);
-      sigmaBest = bestFoundGPHps[0];
-      ellBest = bestFoundGPHps[1];
-      initialisationHappenedForGPHps = true;
-    }
 
-    System.out.println("Best sigma:" + sigmaBest + "     Best ell:" + ellBest + ". Number of observed = " + n);
+    System.out.println("Sigma:" + sigmaBest + "     Best ell:" + ellBest + ". Number of observed = " + n);
 
     DoubleMatrix covarianceBetweenNewAndPrior = getCovarianceMtxWithGaussianKernel(sigmaBest, ellBest, observedData, unobservedEntrie);   // K1
     DoubleMatrix K2 = covarianceBetweenNewAndPrior.transpose();
@@ -130,10 +135,9 @@ public class GPSurrogateModel extends SurrogateModel{
   }
 
   // TODO not tested
-  public DoubleMatrix ifNeededInitCovariancePrior(DoubleMatrix observedGridEntries) {
+  public DoubleMatrix ifNeededInitCovariancePrior(DoubleMatrix observedGridEntriesOnlyFeatures) {
     if(covariancePrior == null)
-      covariancePrior = getCovarianceMtxWithGaussianKernel(sigma, ell, observedGridEntries, observedGridEntries);
-//    else throw new IllegalStateException("Unexpected covariancePrior");
+      covariancePrior = getCovarianceMtxWithGaussianKernel(sigma, ell, observedGridEntriesOnlyFeatures, observedGridEntriesOnlyFeatures);
     return covariancePrior;
   }
 
@@ -152,8 +156,8 @@ public class GPSurrogateModel extends SurrogateModel{
   }
 
   /**
-   *  Goal is to evaluate `unObservedGridEntries` */
-  public MeanVariance evaluate(DoubleMatrix observedGridEntriesWithMeans, DoubleMatrix unObservedGridEntries) {
+   *  Goal is to predictMeanAndVariance for `unObservedGridEntries` */
+  public MeanVariance predictMeanAndVariance(DoubleMatrix observedGridEntriesWithMeans, DoubleMatrix unObservedGridEntries) {
 
     DoubleMatrix onlyFeatures = observedGridEntriesWithMeans.getColumns(new IntervalRange(0, observedGridEntriesWithMeans.columns - 1)).transpose();
     DoubleMatrix onlyMeans = observedGridEntriesWithMeans.getColumn(observedGridEntriesWithMeans.columns - 1);
@@ -206,6 +210,7 @@ public class GPSurrogateModel extends SurrogateModel{
         double det_K = Math.abs(determinant);
         DoubleMatrix firstTerm = observedMeansDM.transpose().mul(-0.5).mmul(Solve.solve(K, eye(K.columns).mul(sigma * sigma))).mmul(observedMeansDM);
         double r = firstTerm.get(0) - 0.5 * Math.log(det_K) - ((double) n/2) * Math.log(Math.PI*2);
+        System.out.println("r = " + r);
         if(r > mll) {
           mll = r;
           bestSigma = sigma;

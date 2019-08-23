@@ -81,16 +81,25 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     }
 
     // Step 3 Update Acquisition function with fresh incumbent candidate
+    updateIncumbentBasedOnNewObservation(newObservationFromObjectiveFun);
+  }
+
+  public void updateIncumbentBasedOnNewObservation(DoubleMatrix newObservationFromObjectiveFun) {
     AcquisitionFunction acquisitionFunction = acquisitionFunction();
     if(!acquisitionFunction.isIncumbentColdStartSetupHappened()) {
-      DoubleMatrix bestFromPrior = selectBestBasedOnResponse(_observedGridEntries);
-
-      double newIncumbent = bestFromPrior.get(0, bestFromPrior.columns - 1);
-      acquisitionFunction.setIncumbent(newIncumbent);
+      updateIncumbentBasedOnObserved();
 
     } else {
       acquisitionFunction.updateIncumbent(newObservationFromObjectiveFun.get(0, newObservationFromObjectiveFun.columns -1));
     }
+  }
+
+  private void updateIncumbentBasedOnObserved() {
+    AcquisitionFunction acquisitionFunction = acquisitionFunction();
+    DoubleMatrix bestFromPrior = selectBestBasedOnResponse(_observedGridEntries);
+
+    double newIncumbent = bestFromPrior.get(0, bestFromPrior.columns - 1);
+    acquisitionFunction.setIncumbent(newIncumbent);
   }
 
   // TODO we probably don't need `observedGridEntries` parameter
@@ -126,19 +135,25 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
   public DoubleMatrix getNextBestCandidateForEvaluation() throws SMBOSearchCompleted, IOException {
 
+    GPSurrogateModel gpSurrogateModel = _surrogateModel;
+
     // Calculation of prior batch. Default size is 10
     if(_observedGridEntries.rows == 0) {
       initializePriorOfSMBOWithBatchEvaluation();
+
+      DoubleMatrix onlyFeatures = _observedGridEntries.getColumns(new IntervalRange(0, _observedGridEntries.columns - 1)).transpose();
+      DoubleMatrix onlyMeans = _observedGridEntries.getColumn(_observedGridEntries.columns - 1);
+      gpSurrogateModel.performHpsGridSearchAndUpdateHps(onlyFeatures,onlyMeans);
+      updateIncumbentBasedOnObserved();
       materializeGrid();
     }
 
     if(_unObservedGridEntries.rows == 0) throw new SMBOSearchCompleted();
 
-    GPSurrogateModel gpSurrogateModel = _surrogateModel;
 
     // We should evaluate only ones as it is up to the user how many times he needs to get best next suggestion. Be lazy.
     //TODO we can probably reuse suggestions from all previous iterations and do better on our predictions. Maybe not for GP implementation.
-    GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.evaluate(_observedGridEntries, _unObservedGridEntries.transpose()); // TODO should we always keep it transposed?
+    GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.predictMeanAndVariance(_observedGridEntries, _unObservedGridEntries.transpose()); // TODO should we always keep it transposed?
 
     //Saving this to be able to draw confidence intervals and see predictions
     if(keepMeanHistory) meanVariancesHistory.add(meanVariance);
@@ -213,9 +228,14 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
           nextRowToAppend[colIdx] = (double) entry.getValue();
           colIdx++;
         }
+        // Filling last element with evaluated result
         nextRowToAppend[colIdx] = evaluateWithObjectiveFunction(next).evaluatedRes;
         DoubleMatrix newObservedGridEntry = new DoubleMatrix(1, nextRowToAppend.length, nextRowToAppend);
+
+        // TODO we are doing it inside updatePrior as well but here we don't want to create prior covariance matrix with `sigma` and `ell`
+        //  wich are not based on grid search (based on prior evaluations) - so we just combine evaluated rows
         _observedGridEntries = _observedGridEntries.rows == 0 ? newObservedGridEntry : DoubleMatrix.concatVertically(_observedGridEntries, newObservedGridEntry);
+
       }
     } catch (RandomSelector.NoUnexploredGridEntitiesLeft ex) {
       throw new SMBOSearchCompleted(); // suggest user to set smaller prior or not to use SMBO
