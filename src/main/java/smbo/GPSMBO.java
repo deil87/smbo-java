@@ -108,9 +108,11 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     return observedGridEntries.getRow(indexOfTheRowWithBestResponse);
   }
 
+  // TODO we need to support `the bigger the better`
   // TODO we probably don't need `observedGridEntries` parameter
   public int selectBestIndexBasedOnResponse(DoubleMatrix observedGridEntries) {
-    int indexOfTheRowWithBestResponse = observedGridEntries.getColumn(observedGridEntries.columns - 1).columnArgmaxs()[0];
+    int[] argMaxes = observedGridEntries.getColumn(observedGridEntries.columns - 1).columnArgmaxs();
+    int indexOfTheRowWithBestResponse = argMaxes[0];
     return indexOfTheRowWithBestResponse;
   }
 

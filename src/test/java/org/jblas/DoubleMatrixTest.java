@@ -22,4 +22,15 @@ public class DoubleMatrixTest {
     int[] columnArgmins = matrix.columnArgmins();
     Assert.assertEquals(0, columnArgmins[4], 1e-5);
   }
+
+  @Test
+  public void orderOfOperations() {
+    DoubleMatrix matrix = new DoubleMatrix(2, 5, 2,2,2,2,2, 2,2,2,2,2);
+    DoubleMatrixUtils.multilinePrint(matrix);
+    DoubleMatrix result = matrix.div(2).add(0.5);
+    DoubleMatrixUtils.multilinePrint(result);
+
+    DoubleMatrix expected = new DoubleMatrix(2, 5, 1.5,1.5,1.5,1.5,1.5, 1.5,1.5,1.5,1.5,1.5);
+    Assert.assertEquals(expected, result);
+  }
 }

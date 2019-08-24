@@ -96,7 +96,7 @@ public class GPSMBOTest {
 
   // Based on MaxImprovement acquisition and theBiggerTheBetter = true
   @Test
-  public void selectBest() {
+  public void selectBestAcquisitionFunEvaluation() {
     int size = 15;
     Double[] gridEntries = new Double[size*10];
     int i;
@@ -111,8 +111,28 @@ public class GPSMBOTest {
 
     GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
     DoubleMatrix afAvaluations = new DoubleMatrix(5,1, 1,3,7,2,5);
-    DoubleMatrix means = new DoubleMatrix(5,1, 1,2,3,4,5);
+//    DoubleMatrix means = new DoubleMatrix(5,1, 1,2,3,4,5);
     assertEquals(3, gpsmbo.selectBest( afAvaluations), 1e-5);
+  }
+
+  @Test
+  public void selectIndexOfTheBestRow() {
+    int size = 15;
+    Double[] gridEntries = new Double[size*10];
+    int i;
+    for (i = 0; i < size*10; i++) {
+      gridEntries[i] = (double) i / 10;
+    }
+
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
+    grid.put("X", gridEntries);
+
+    ObjectiveFunction sinOF = new SinOFDefault();
+
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
+    DoubleMatrix rows = new DoubleMatrix(5,1, 1,3,7,2,5);
+    int indexForBest = gpsmbo.selectBestIndexBasedOnResponse(rows);
+    assertEquals(2, indexForBest, 1e-5);
   }
 
   @Test
