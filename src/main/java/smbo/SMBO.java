@@ -48,7 +48,7 @@ public abstract class SMBO<SM extends SurrogateModel, AF extends AcquisitionFunc
    *
    */
   protected DoubleMatrix _unObservedGridEntries = new DoubleMatrix();  // maybe better to store it as matrix ( X1 X2 X3)
-
+  int[] _hashesForUnObservedGridEntries = null;
 
   public DoubleMatrix prior() {
     return _observedGridEntries;

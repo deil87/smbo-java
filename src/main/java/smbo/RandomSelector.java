@@ -7,13 +7,16 @@ class RandomSelector {
 
   SortedMap<String, Object[]> _grid;
   String[] _dimensionNames;
+  long _seed;
 
   private int _spaceSize;
+
   transient private Set<Integer> _visitedPermutationHashes = new LinkedHashSet<>();
   Random _randomGen;
 
   public RandomSelector(SortedMap<String, Object[]> grid, long seed) {
     _grid = grid;
+    _seed = seed;
     _randomGen = new Random(seed);
     _dimensionNames = _grid.keySet().toArray(new String[0]);
     _spaceSize = calculateSpaceSize(_grid);
@@ -56,6 +59,11 @@ class RandomSelector {
     return chosenIndices;
   }
 
+  public void markAsVisitedByValue(int hashOfIndices) {
+//    int hashOfIndices = hashIntArray(chosenIndices);
+    _visitedPermutationHashes.add(hashOfIndices);
+  }
+
   public int spaceSize() {
     return _spaceSize;
   }
@@ -81,6 +89,9 @@ class RandomSelector {
   public Set<Integer> getVisitedPermutationHashes() {
     return _visitedPermutationHashes;
   }
+  public void setVisitedPermutationHashes(Integer[] _visitedPermutationHashes) {
+    this._visitedPermutationHashes = new LinkedHashSet(Arrays.asList(_visitedPermutationHashes));
+  }
 
   private static int hashIntArray(int[] ar) {
     Integer[] hashMe = new Integer[ar.length];
@@ -88,6 +99,14 @@ class RandomSelector {
       hashMe[i] = ar[i];
 //        hashMe[i] = ar[i] * _grid.get(_dimensionNames[i]).length;
     return Arrays.deepHashCode(hashMe);
+  }
+
+
+  protected RandomSelector cloneTyped(){
+    RandomSelector randomSelector = new RandomSelector(_grid, _seed);
+    randomSelector.setVisitedPermutationHashes(_visitedPermutationHashes.toArray(new Integer[]{}).clone());
+    randomSelector._spaceSize = _spaceSize;
+    return randomSelector;
   }
 }
 

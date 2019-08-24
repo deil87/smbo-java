@@ -16,6 +16,11 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   private ObjectiveFunction _of;
   // Defaults
   private final int priorSize;
+
+  public RandomSelector getRandomSelector() {
+    return _randomSelector;
+  }
+
   private RandomSelector _randomSelector;   //TODO Move to SMBO
 
   final private String[] gridKeysOriginalOrder; // TODO Maybe move it to SMBO? it does not belong to SMBO abtraction but we need it in all implementations of SMBO.
@@ -139,15 +144,17 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
     GPSurrogateModel gpSurrogateModel = _surrogateModel;
 
-    // Calculation of prior batch. Default size is 10
+    // Calculation of prior batch.
     if(_observedGridEntries.rows == 0) {
       initializePriorOfSMBOWithBatchEvaluation();
+//      initializeDiversePriorOfSMBOWithBatchEvaluation(); //TODO consider to remove commented
 
-      DoubleMatrix onlyFeatures = _observedGridEntries.getColumns(new IntervalRange(0, _observedGridEntries.columns - 1)).transpose();
+      DoubleMatrix onlyFeatures = _observedGridEntries.getColumns(new IntervalRange(0, _observedGridEntries.columns - 1));
       DoubleMatrix onlyMeans = _observedGridEntries.getColumn(_observedGridEntries.columns - 1);
       gpSurrogateModel.performHpsGridSearchAndUpdateHps(onlyFeatures,onlyMeans);
       updateIncumbentBasedOnObserved();
-      materializeGrid();
+      MaterialisedGrid materialisedGrid = materializeGrid(_randomSelector, _observedGridEntries.rows);
+      _unObservedGridEntries = materialisedGrid.unObservedGridEntries;
     }
 
     if(_unObservedGridEntries.rows == 0) throw new SMBOSearchCompleted();
@@ -196,11 +203,17 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   }
 
   //materialise rest of the grid
-  public void materializeGrid() {
+  public MaterialisedGrid materializeGrid(RandomSelector randomSelector, int numberOfObserved) {
     System.out.println("Starting to materialize grid...  ( happens as an init phase during first call of `getNextBestCandidateForEvaluation`)");
+    DoubleMatrix unObservedGridEntries = null;
+    int[] hashesForUnObservedGridEntries = new int[randomSelector.spaceSize() - numberOfObserved];
     try {
+      int entriesCount = 0;
       while (true) {
-        GridEntry next = _randomSelector.getNext();
+        GridEntry next = randomSelector.getNext();
+        hashesForUnObservedGridEntries[entriesCount] = next.getHash();
+        entriesCount++;
+
         double[] nextRowToAppend = new double[next.getEntry().size()];
         int colIdx = 0;
 
@@ -210,10 +223,22 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
           colIdx++;
         }
         DoubleMatrix newMaterializedGridEntry = new DoubleMatrix(1, nextRowToAppend.length, nextRowToAppend);
-        _unObservedGridEntries = _unObservedGridEntries.rows == 0 ? newMaterializedGridEntry : DoubleMatrix.concatVertically(_unObservedGridEntries, newMaterializedGridEntry);
+        unObservedGridEntries = unObservedGridEntries == null ? newMaterializedGridEntry : DoubleMatrix.concatVertically(unObservedGridEntries, newMaterializedGridEntry);
       }
     } catch (RandomSelector.NoUnexploredGridEntitiesLeft ex) {
       System.out.println("Random selector stopped with NoUnexploredGridEntitiesLeft. Total number of exploredCount grid items: " + ex.exploredCount);
+    }
+    return new MaterialisedGrid(unObservedGridEntries, hashesForUnObservedGridEntries);
+  }
+
+  public static class MaterialisedGrid {
+    DoubleMatrix unObservedGridEntries;
+
+    int[] hashesForUnObservedGridEntries;
+
+    public MaterialisedGrid(DoubleMatrix unObservedGridEntries, int[] hashesForUnObservedGridEntries) {
+      this.unObservedGridEntries = unObservedGridEntries;
+      this.hashesForUnObservedGridEntries = hashesForUnObservedGridEntries;
     }
   }
 
@@ -238,6 +263,52 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
         //  wich are not based on grid search (based on prior evaluations) - so we just combine evaluated rows
         _observedGridEntries = _observedGridEntries.rows == 0 ? newObservedGridEntry : DoubleMatrix.concatVertically(_observedGridEntries, newObservedGridEntry);
 
+      }
+    } catch (RandomSelector.NoUnexploredGridEntitiesLeft ex) {
+      throw new SMBOSearchCompleted(); // suggest user to set smaller prior or not to use SMBO
+    }
+  }
+
+  // This approach seems not to be helpful at all. Probably sampling diverse entries based on genotypic distance just wastes attempts and it does not help with estimating variance in hyperspace
+  void initializeDiversePriorOfSMBOWithBatchEvaluation() throws SMBOSearchCompleted {
+    DoubleMatrix baseEntries = null;
+    DiverseSelector diverseSelector = new DiverseSelector();
+    try {
+      for (int j = 0; j < priorSize; j++) {
+        if(baseEntries == null) {
+          // Select randomly and get evaluations from our objective function
+          GridEntry next = _randomSelector.getNext();
+          double[] nextRowToAppend = new double[next.getEntry().size() + 1]; // TODO why plus one?
+          int colIdx = 0;
+
+          for (Map.Entry<String, Object> entry : next.getEntry().entrySet()) {
+
+            nextRowToAppend[colIdx] = (double) entry.getValue();
+            colIdx++;
+          }
+          DoubleMatrix nextAsMtx = next.getEntryAsMtx();
+          baseEntries = baseEntries == null ? nextAsMtx : DoubleMatrix.concatVertically(baseEntries, nextAsMtx);
+          // Filling last element with evaluated result
+          nextRowToAppend[colIdx] = evaluateWithObjectiveFunction(next).evaluatedRes;
+          DoubleMatrix newObservedGridEntry = new DoubleMatrix(1, nextRowToAppend.length, nextRowToAppend);
+
+          // TODO we are doing it inside updatePrior as well but here we don't want to create prior covariance matrix with `sigma` and `ell`
+          //  wich are not based on grid search (based on prior evaluations) - so we just combine evaluated rows
+          _observedGridEntries = _observedGridEntries.rows == 0 ? newObservedGridEntry : DoubleMatrix.concatVertically(_observedGridEntries, newObservedGridEntry);
+        } else {
+          // Select diverse entry // TODO refactor, as we materialise on every iteration for prior
+          MaterialisedGrid virtuallyMaterialisedGrid = materializeGrid(_randomSelector.cloneTyped(), _observedGridEntries.rows);//we should materialise dedicated separeate grid, otherwise space is explored
+          DoubleMatrix unObservedGridEntries = virtuallyMaterialisedGrid.unObservedGridEntries;
+          DiverseSelector.MostDistantEntry nextMostDistant = diverseSelector.manyToManySelectMostDistant(baseEntries, unObservedGridEntries);
+          baseEntries = DoubleMatrix.concatVertically(baseEntries, nextMostDistant.entry);
+          DoubleMatrix nextMostDistantEvaluated = DoubleMatrix.concatHorizontally(nextMostDistant.entry, evaluateRowsWithOF(this, nextMostDistant.entry));
+          int indexForMostDistantUnobserved = nextMostDistant.index;
+          assert unObservedGridEntries.rows == virtuallyMaterialisedGrid.hashesForUnObservedGridEntries.length;
+
+          int hashForMostDistant = virtuallyMaterialisedGrid.hashesForUnObservedGridEntries[indexForMostDistantUnobserved];
+          _randomSelector.markAsVisitedByValue(hashForMostDistant);
+          _observedGridEntries = _observedGridEntries.rows == 0 ? nextMostDistantEvaluated : DoubleMatrix.concatVertically(_observedGridEntries, nextMostDistantEvaluated);
+        }
       }
     } catch (RandomSelector.NoUnexploredGridEntitiesLeft ex) {
       throw new SMBOSearchCompleted(); // suggest user to set smaller prior or not to use SMBO

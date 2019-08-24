@@ -33,8 +33,8 @@ public class GPSMBO_E2E_Test {
 
     ObjectiveFunction sinOF = new SinOFDefault();
     GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
-    gpsmbo.materializeGrid();
-    DoubleMatrix unObservedGridEntries = gpsmbo.getUnObservedGridEntries();
+    GPSMBO.MaterialisedGrid materialisedGrid = gpsmbo.materializeGrid(gpsmbo.getRandomSelector(), gpsmbo._observedGridEntries.rows);
+    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
 
     // Evaluate whole grid to draw original OF
     DoubleMatrix YValDM = evaluateRowsWithOF(gpsmbo, unObservedGridEntries);
@@ -77,8 +77,8 @@ public class GPSMBO_E2E_Test {
     ObjectiveFunction sinOF = new SinOFDefault();
 
     GPSMBO gpsmboForTrueOF = new GPSMBO(sinOF, grid, ei, true, seed);
-    gpsmboForTrueOF.materializeGrid();
-    DoubleMatrix unObservedGridEntries = gpsmboForTrueOF.getUnObservedGridEntries();
+    GPSMBO.MaterialisedGrid materialisedGrid = gpsmboForTrueOF.materializeGrid(gpsmboForTrueOF.getRandomSelector(), gpsmboForTrueOF._observedGridEntries.rows);
+    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
 
     // Evaluate whole grid to draw original OF
     DoubleMatrix YValDM = evaluateRowsWithOF(gpsmboForTrueOF, unObservedGridEntries);
@@ -128,8 +128,8 @@ public class GPSMBO_E2E_Test {
     ObjectiveFunction sqrtOF = new SqrtOF();
 
     GPSMBO gpsmboForTrueOF = new GPSMBO(sqrtOF, grid, ei, true, seed);
-    gpsmboForTrueOF.materializeGrid();
-    DoubleMatrix unObservedGridEntries = gpsmboForTrueOF.getUnObservedGridEntries();
+    GPSMBO.MaterialisedGrid materialisedGrid = gpsmboForTrueOF.materializeGrid(gpsmboForTrueOF.getRandomSelector(), gpsmboForTrueOF._observedGridEntries.rows);
+    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
 
     // Evaluate whole grid to draw original OF
     DoubleMatrix YValDM = evaluateRowsWithOF(gpsmboForTrueOF, unObservedGridEntries);
@@ -185,8 +185,8 @@ public class GPSMBO_E2E_Test {
     ObjectiveFunction sqrtOF = new SinOF_2D();
 
     GPSMBO gpsmboForTrueOF = new GPSMBO(sqrtOF, grid, ei, true, seed);
-    gpsmboForTrueOF.materializeGrid();
-    DoubleMatrix unObservedGridEntries = gpsmboForTrueOF.getUnObservedGridEntries();
+    GPSMBO.MaterialisedGrid materialisedGrid = gpsmboForTrueOF.materializeGrid(gpsmboForTrueOF.getRandomSelector(), gpsmboForTrueOF._observedGridEntries.rows);
+    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
 
     // Evaluate whole grid to draw original OF
     DoubleMatrix YValDM = evaluateRowsWithOF(gpsmboForTrueOF, unObservedGridEntries);

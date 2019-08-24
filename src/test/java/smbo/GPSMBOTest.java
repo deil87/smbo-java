@@ -88,10 +88,11 @@ public class GPSMBOTest {
     GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
 
     gpsmbo.initializePriorOfSMBOWithBatchEvaluation(); // This will take 10 entries for prior
-    gpsmbo.materializeGrid(); // Rest 150 - 10 will be materialized
+    GPSMBO.MaterialisedGrid materialisedGrid = gpsmbo.materializeGrid(gpsmbo.getRandomSelector(), gpsmbo._observedGridEntries.rows);
+    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries; // Rest 150 - 10 will be materialized
 
-    DoubleMatrixUtils.multilinePrint(gpsmbo.getUnObservedGridEntries());
-    assertEquals(140, gpsmbo.getUnObservedGridEntries().rows, 1e-5);
+    DoubleMatrixUtils.multilinePrint(unObservedGridEntries);
+    assertEquals(140, unObservedGridEntries.rows, 1e-5);
   }
 
   // Based on MaxImprovement acquisition and theBiggerTheBetter = true
@@ -151,9 +152,8 @@ public class GPSMBOTest {
 
     GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
     gpsmbo.initializePriorOfSMBOWithBatchEvaluation();
-    gpsmbo.materializeGrid();
-
-    DoubleMatrix unObservedGridEntries = gpsmbo.getUnObservedGridEntries();
+    GPSMBO.MaterialisedGrid materialisedGrid = gpsmbo.materializeGrid(gpsmbo.getRandomSelector(), gpsmbo._observedGridEntries.rows);
+    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
 
     int bestIndex = 3;
     double rowWithBestSuggestion = unObservedGridEntries.getRow(bestIndex).get(0,0);

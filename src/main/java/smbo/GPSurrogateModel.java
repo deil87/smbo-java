@@ -90,7 +90,7 @@ public class GPSurrogateModel extends SurrogateModel{
     boolean isGSOverGPHyperparametersEnabled = true;
     if(!initialisationHappenedForGPHps && isGSOverGPHyperparametersEnabled) {
       // but in that way our covariancePrior was computed with different sigma and ell from previous iteration
-      double[] bestFoundGPHps = gridSearchOverGPsHyperparameters(observedDataOnlyFeatures, means);
+      double[] bestFoundGPHps = gridSearchOverGPsHyperparameters(observedDataOnlyFeatures.transpose(), means);
       sigma = bestFoundGPHps[0];
       ell = bestFoundGPHps[1];
       noiseVariance = bestFoundGPHps[2];
