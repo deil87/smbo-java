@@ -48,7 +48,7 @@ public class MeanVariancePlotHelper {
    * @param suggestions double matrix with suggestions
    * @throws IOException
    */
-  static void plotWithVarianceIntervals(DoubleMatrix unObservedGridEntries, DoubleMatrix alreadyEvaluated, DoubleMatrix suggestions, GPSurrogateModel.MeanVariance meanVariance, GPSMBO gpsmboForSuggestions ) throws IOException {
+  static XYChart plotWithVarianceIntervals(DoubleMatrix unObservedGridEntries, DoubleMatrix alreadyEvaluated, DoubleMatrix suggestions, GPSurrogateModel.MeanVariance meanVariance, GPSMBO gpsmboForSuggestions ) throws IOException {
     int numberOfUnObserved = unObservedGridEntries.rows;
     int numberOfObserved = alreadyEvaluated.rows;
     int numberOfMeans = meanVariance.getMean().rows;
@@ -89,7 +89,7 @@ public class MeanVariancePlotHelper {
 //    new XChartPanel()
 
     BitmapEncoder.saveBitmapWithDPI(chart, "./SMBO_GP_suggestions_with_variances_300_DPI_" + alreadyEvaluated.rows, BitmapEncoder.BitmapFormat.PNG, 300);
-
+    return chart;
   }
 
 }

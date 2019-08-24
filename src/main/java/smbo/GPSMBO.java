@@ -2,6 +2,8 @@ package smbo;
 
 import org.jblas.DoubleMatrix;
 import org.jblas.ranges.IntervalRange;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.internal.chartpart.Chart;
 import smbo.of.ObjectiveFunction;
 import utils.DoubleMatrixUtils;
 
@@ -25,11 +27,17 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
   final private String[] gridKeysOriginalOrder; // TODO Maybe move it to SMBO? it does not belong to SMBO abtraction but we need it in all implementations of SMBO.
 
+  public List<Chart> getMeanVarianceCharts() {
+    return meanVarianceCharts;
+  }
+
   List<GPSurrogateModel.MeanVariance> meanVariancesHistory = new ArrayList<>();
 
   private boolean theBiggerTheBetter;
 
   boolean keepMeanHistory = false;
+
+  List<Chart> meanVarianceCharts = new ArrayList<Chart>();
 
   /**
    *  Default constructor with MaxImprovementAF acquisition function
@@ -171,7 +179,8 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     DoubleMatrix afEvaluations = acquisitionFunction().compute(meanVariance.getMean(), meanVariance.getVariance());
 
     if(gridKeysOriginalOrder.length == 1) {
-      MeanVariancePlotHelper.plotWithVarianceIntervals(_unObservedGridEntries, _observedGridEntries, null, meanVariance, this);
+      XYChart meanVarianceChart = MeanVariancePlotHelper.plotWithVarianceIntervals(_unObservedGridEntries, _observedGridEntries, null, meanVariance, this);
+      meanVarianceCharts.add(meanVarianceChart);
       //TODO we probably want to draw acquisition function as well
       DoubleMatrix meanAndVariance = DoubleMatrix.concatHorizontally(meanVariance.getMean(), meanVariance.getVariance());
       DoubleMatrix combinedForDisplayingMtx = DoubleMatrix.concatHorizontally(DoubleMatrix.concatHorizontally(_unObservedGridEntries, meanAndVariance), afEvaluations);

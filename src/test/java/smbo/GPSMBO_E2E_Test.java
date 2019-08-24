@@ -3,16 +3,12 @@ package smbo;
 import org.jblas.DoubleMatrix;
 import org.jblas.ranges.IntervalRange;
 import org.junit.Test;
-import smbo.of.ObjectiveFunction;
-import smbo.of.SinOFDefault;
-import smbo.of.SinOF_2D;
-import smbo.of.SqrtOF;
+import org.knowm.xchart.BitmapEncoder;
+import org.knowm.xchart.internal.chartpart.Chart;
+import smbo.of.*;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 import static smbo.GPSMBO.evaluateRowsWithOF;
 
@@ -56,32 +52,23 @@ public class GPSMBO_E2E_Test {
   }
 
   @Test
-  public void learn_sinOF_with_EI_acquisition() throws SMBO.SMBOSearchCompleted, IOException {
+  public void learn_sinOF_with_EI_acquisition() throws IOException {
 
-    double tradeoff = -5;
+    double tradeoff = 0.0;
     EI ei = new EI(tradeoff, true);
 
-    int size = 25;
+    int size = 10;
     Double[] gridEntries = new Double[size*10];
-    int i;
-    for (i = 0; i < size*10; i++) {
+    for (int i = 0; i < size*10; i++) {
       gridEntries[i] = (double) i / 10;
     }
 
     SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
     grid.put("X", gridEntries);
-    grid.put("Y", gridEntries);
 
     int seed = 12345;
 
     ObjectiveFunction sinOF = new SinOFDefault();
-
-    GPSMBO gpsmboForTrueOF = new GPSMBO(sinOF, grid, ei, true, seed);
-    GPSMBO.MaterialisedGrid materialisedGrid = gpsmboForTrueOF.materializeGrid(gpsmboForTrueOF.getRandomSelector(), gpsmboForTrueOF._observedGridEntries.rows);
-    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
-
-    // Evaluate whole grid to draw original OF
-    DoubleMatrix YValDM = evaluateRowsWithOF(gpsmboForTrueOF, unObservedGridEntries);
 
     GPSMBO gpsmboForSuggestions = new GPSMBO(sinOF, grid, ei,true, seed);
     DoubleMatrix suggestions = null;
@@ -103,6 +90,54 @@ public class GPSMBO_E2E_Test {
         gpsmboForSuggestions.updatePrior(DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion));
       }
     } catch (SMBO.SMBOSearchCompleted ex) {
+      List<Chart> meanVarianceCharts = gpsmboForSuggestions.getMeanVarianceCharts();
+      BitmapEncoder.saveBitmap(meanVarianceCharts, meanVarianceCharts.size() / 2 , 2, "MeanVariance_sin_" + size + "_" + seed, BitmapEncoder.BitmapFormat.PNG);
+
+    }
+  }
+
+  @Test
+  public void learn_dumped_sin_wave_OF_with_EI_acquisition() throws SMBO.SMBOSearchCompleted, IOException {
+
+    double tradeoff = 0.0;
+    EI ei = new EI(tradeoff, true);
+
+    int size = 5;
+    Double[] gridEntries = new Double[size*10];
+    int i;
+    for (i = 0; i < size*10; i++) {
+      gridEntries[i] = (double) i / 10;
+    }
+
+    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
+    grid.put("X", gridEntries);
+
+    int seed = 12345;
+
+    ObjectiveFunction sinOF = new DumpedSinWaveOF();
+
+    GPSMBO gpsmboForSuggestions = new GPSMBO(sinOF, grid, ei,true, seed);
+    DoubleMatrix suggestions = null;
+
+    DoubleMatrix onlyPriorEvaluation = null;
+    try{
+      while (true) {
+        DoubleMatrix nextBestCandidate = gpsmboForSuggestions.getNextBestCandidateForEvaluation();
+        if(onlyPriorEvaluation == null) {
+          onlyPriorEvaluation = gpsmboForSuggestions.getObservedGridEntries().getRows(new IntervalRange(0, 5)); // 10 - size of a prior
+        }
+
+        if(suggestions == null) {
+          suggestions = nextBestCandidate;
+        } else {
+          suggestions = DoubleMatrix.concatVertically(suggestions, nextBestCandidate);
+        }
+        DoubleMatrix observedSuggestion = evaluateRowsWithOF(gpsmboForSuggestions, nextBestCandidate);
+        gpsmboForSuggestions.updatePrior(DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion));
+      }
+    } catch (SMBO.SMBOSearchCompleted ex) {
+      List<Chart> meanVarianceCharts = gpsmboForSuggestions.getMeanVarianceCharts();
+      BitmapEncoder.saveBitmap(meanVarianceCharts, meanVarianceCharts.size() / 2 , 2, "MeanVariance_dumped_sin_wave_" + size + "_" + seed, BitmapEncoder.BitmapFormat.PNG);
 
     }
   }
@@ -159,6 +194,8 @@ public class GPSMBO_E2E_Test {
         gpsmboForSuggestions.updatePrior(newKnowledge);
       }
     } catch (SMBO.SMBOSearchCompleted ex) {
+      List<Chart> meanVarianceCharts = gpsmboForSuggestions.getMeanVarianceCharts();
+      BitmapEncoder.saveBitmap(meanVarianceCharts, meanVarianceCharts.size() , 1, "MeanVariance_" + seed, BitmapEncoder.BitmapFormat.PNG);
 
     }
   }
