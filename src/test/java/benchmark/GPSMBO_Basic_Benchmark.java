@@ -1,16 +1,21 @@
-package smbo;
+package benchmark;
 
 import org.jblas.DoubleMatrix;
 import org.jblas.ranges.IntervalRange;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.internal.chartpart.Chart;
+import smbo.EI;
+import smbo.GPSMBO;
+import smbo.SMBO;
 import smbo.of.*;
 
 import java.io.IOException;
 import java.util.*;
 
-public class GPSMBO_E2E_Test {
+@Ignore
+public class GPSMBO_Basic_Benchmark {
 
 
   @Test
