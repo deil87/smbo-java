@@ -7,8 +7,6 @@ import org.knowm.xchart.style.markers.SeriesMarkers;
 import java.awt.*;
 import java.io.IOException;
 
-import static smbo.GPSMBO.evaluateRowsWithOF;
-
 public class MeanVariancePlotHelper {
 
 
@@ -30,7 +28,7 @@ public class MeanVariancePlotHelper {
     series.setMarker(SeriesMarkers.DIAMOND);
     for(int si = 0; si < suggestions.rows ; si++) {
       DoubleMatrix suggestion = suggestions.getRow(si);
-      XYSeries series2 = chart.addSeries("Suggestion:" + si, suggestion.toArray(), evaluateRowsWithOF(gpsmboForSuggestions, suggestion).sub(0.2).toArray());
+      XYSeries series2 = chart.addSeries("Suggestion:" + si, suggestion.toArray(), gpsmboForSuggestions.evaluateRowsWithOF(suggestion).sub(0.2).toArray());
       series2.setMarker(SeriesMarkers.PLUS);
 
       series2.setMarkerColor(new java.awt.Color( Math.max(255 - si* 3, 0),0, 0));

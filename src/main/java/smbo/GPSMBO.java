@@ -310,7 +310,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
           DoubleMatrix unObservedGridEntries = virtuallyMaterialisedGrid.unObservedGridEntries;
           DiverseSelector.MostDistantEntry nextMostDistant = diverseSelector.manyToManySelectMostDistant(baseEntries, unObservedGridEntries);
           baseEntries = DoubleMatrix.concatVertically(baseEntries, nextMostDistant.entry);
-          DoubleMatrix nextMostDistantEvaluated = DoubleMatrix.concatHorizontally(nextMostDistant.entry, evaluateRowsWithOF(this, nextMostDistant.entry));
+          DoubleMatrix nextMostDistantEvaluated = DoubleMatrix.concatHorizontally(nextMostDistant.entry, evaluateRowsWithOF(nextMostDistant.entry));
           int indexForMostDistantUnobserved = nextMostDistant.index;
           assert unObservedGridEntries.rows == virtuallyMaterialisedGrid.hashesForUnObservedGridEntries.length;
 
@@ -334,10 +334,10 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   }
 
   // Helper method that will evaluate multiple rows with OF
-  public static DoubleMatrix evaluateRowsWithOF(GPSMBO gpsmbo, DoubleMatrix unObservedGridEntries) {
+  public DoubleMatrix evaluateRowsWithOF(DoubleMatrix unObservedGridEntries) {
     DoubleMatrix YValDM = null;
     for(DoubleMatrix row :unObservedGridEntries.rowsAsList()) {
-      EvaluatedGridEntry evaluatedGridEntry = gpsmbo.objectiveFunction(row);
+      EvaluatedGridEntry evaluatedGridEntry = this.objectiveFunction(row);
       DoubleMatrix evaluationDM = evaluatedGridEntry.getEvaluatedEntryAsMtx().getColumn(row.columns);
       if(YValDM == null) {
         YValDM = evaluationDM;
@@ -345,7 +345,6 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
         YValDM = DoubleMatrix.concatVertically(YValDM, evaluationDM);
       }
     }
-//    YValDM.print();
     return YValDM;
   }
 

@@ -10,8 +10,6 @@ import smbo.of.*;
 import java.io.IOException;
 import java.util.*;
 
-import static smbo.GPSMBO.evaluateRowsWithOF;
-
 public class GPSMBO_E2E_Test {
 
 
@@ -28,12 +26,6 @@ public class GPSMBO_E2E_Test {
     grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
-    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
-    GPSMBO.MaterialisedGrid materialisedGrid = gpsmbo.materializeGrid(gpsmbo.getRandomSelector(), gpsmbo._observedGridEntries.rows);
-    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
-
-    // Evaluate whole grid to draw original OF
-    DoubleMatrix YValDM = evaluateRowsWithOF(gpsmbo, unObservedGridEntries);
 
     GPSMBO gpsmboSuggestions = new GPSMBO(sinOF, grid, true, 1234);
     DoubleMatrix suggestions = null;
@@ -54,45 +46,36 @@ public class GPSMBO_E2E_Test {
   @Test
   public void learn_sinOF_with_EI_acquisition() throws IOException {
 
+    // Trade-off between exploration and exploitation
     double tradeoff = 0.0;
-    EI ei = new EI(tradeoff, true);
+    EI acquisitionFun = new EI(tradeoff, true);
 
     int size = 10;
-    Double[] gridEntries = new Double[size*10];
+    Double[] gridEntriesForX = new Double[size*10];
     for (int i = 0; i < size*10; i++) {
-      gridEntries[i] = (double) i / 10;
+      gridEntriesForX[i] = (double) i / 10;
     }
 
     SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
-    grid.put("X", gridEntries);
+    grid.put("X", gridEntriesForX);
 
     int seed = 12345;
 
     ObjectiveFunction sinOF = new SinOFDefault();
 
-    GPSMBO gpsmboForSuggestions = new GPSMBO(sinOF, grid, ei,true, seed);
-    DoubleMatrix suggestions = null;
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, acquisitionFun,true, seed);
 
-    DoubleMatrix onlyPriorEvaluation = null;
     try{
       while (true) {
-        DoubleMatrix nextBestCandidate = gpsmboForSuggestions.getNextBestCandidateForEvaluation();
-        if(onlyPriorEvaluation == null) {
-          onlyPriorEvaluation = gpsmboForSuggestions.getObservedGridEntries().getRows(new IntervalRange(0, 5)); // 10 - size of a prior
-        }
+        DoubleMatrix nextBestCandidate = gpsmbo.getNextBestCandidateForEvaluation();
 
-        if(suggestions == null) {
-          suggestions = nextBestCandidate;
-        } else {
-          suggestions = DoubleMatrix.concatVertically(suggestions, nextBestCandidate);
-        }
-        DoubleMatrix observedSuggestion = evaluateRowsWithOF(gpsmboForSuggestions, nextBestCandidate);
-        gpsmboForSuggestions.updatePrior(DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion));
+        DoubleMatrix observedOFValue = gpsmbo.evaluateRowsWithOF( nextBestCandidate);
+        DoubleMatrix observedSuggestion = DoubleMatrix.concatHorizontally(nextBestCandidate, observedOFValue);
+        gpsmbo.updatePrior(observedSuggestion);
       }
     } catch (SMBO.SMBOSearchCompleted ex) {
-      List<Chart> meanVarianceCharts = gpsmboForSuggestions.getMeanVarianceCharts();
+      List<Chart> meanVarianceCharts = gpsmbo.getMeanVarianceCharts();
       BitmapEncoder.saveBitmap(meanVarianceCharts, meanVarianceCharts.size() / 2 , 2, "MeanVariance_sin_" + size + "_" + seed, BitmapEncoder.BitmapFormat.PNG);
-
     }
   }
 
@@ -114,7 +97,7 @@ public class GPSMBO_E2E_Test {
 
     int seed = 12345;
 
-    ObjectiveFunction sinOF = new DumpedSinWaveOF();
+    ObjectiveFunction sinOF = new ComplexPeriodicOF();
 
     GPSMBO gpsmboForSuggestions = new GPSMBO(sinOF, grid, ei,true, seed);
     DoubleMatrix suggestions = null;
@@ -132,7 +115,7 @@ public class GPSMBO_E2E_Test {
         } else {
           suggestions = DoubleMatrix.concatVertically(suggestions, nextBestCandidate);
         }
-        DoubleMatrix observedSuggestion = evaluateRowsWithOF(gpsmboForSuggestions, nextBestCandidate);
+        DoubleMatrix observedSuggestion = gpsmboForSuggestions.evaluateRowsWithOF( nextBestCandidate);
         gpsmboForSuggestions.updatePrior(DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion));
       }
     } catch (SMBO.SMBOSearchCompleted ex) {
@@ -162,12 +145,7 @@ public class GPSMBO_E2E_Test {
 
     ObjectiveFunction sqrtOF = new SqrtOF();
 
-    GPSMBO gpsmboForTrueOF = new GPSMBO(sqrtOF, grid, ei, true, seed);
-    GPSMBO.MaterialisedGrid materialisedGrid = gpsmboForTrueOF.materializeGrid(gpsmboForTrueOF.getRandomSelector(), gpsmboForTrueOF._observedGridEntries.rows);
-    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
-
     // Evaluate whole grid to draw original OF
-    DoubleMatrix YValDM = evaluateRowsWithOF(gpsmboForTrueOF, unObservedGridEntries);
 
     GPSMBO gpsmboForSuggestions = new GPSMBO(sqrtOF, grid, ei,true, seed);
     DoubleMatrix suggestionsAll = null;
@@ -185,7 +163,7 @@ public class GPSMBO_E2E_Test {
         } else {
           suggestionsAll = DoubleMatrix.concatVertically(suggestionsAll, nextBestCandidate);
         }
-        DoubleMatrix observedSuggestion = evaluateRowsWithOF(gpsmboForSuggestions, nextBestCandidate);
+        DoubleMatrix observedSuggestion = gpsmboForSuggestions.evaluateRowsWithOF(nextBestCandidate);
 
         DoubleMatrix newKnowledge = DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion);
         System.out.println("New observed point:");
@@ -221,13 +199,6 @@ public class GPSMBO_E2E_Test {
 
     ObjectiveFunction sqrtOF = new SinOF_2D();
 
-    GPSMBO gpsmboForTrueOF = new GPSMBO(sqrtOF, grid, ei, true, seed);
-    GPSMBO.MaterialisedGrid materialisedGrid = gpsmboForTrueOF.materializeGrid(gpsmboForTrueOF.getRandomSelector(), gpsmboForTrueOF._observedGridEntries.rows);
-    DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
-
-    // Evaluate whole grid to draw original OF
-    DoubleMatrix YValDM = evaluateRowsWithOF(gpsmboForTrueOF, unObservedGridEntries);
-
     GPSMBO gpsmboForSuggestions = new GPSMBO(sqrtOF, grid, ei,true, seed);
     DoubleMatrix suggestionsAll = null;
 
@@ -244,7 +215,7 @@ public class GPSMBO_E2E_Test {
         } else {
           suggestionsAll = DoubleMatrix.concatVertically(suggestionsAll, nextBestCandidate);
         }
-        DoubleMatrix observedSuggestion = evaluateRowsWithOF(gpsmboForSuggestions, nextBestCandidate);
+        DoubleMatrix observedSuggestion = gpsmboForSuggestions.evaluateRowsWithOF(nextBestCandidate);
 
         DoubleMatrix newKnowledge = DoubleMatrix.concatHorizontally(nextBestCandidate, observedSuggestion);
         System.out.println("New observed point:");
