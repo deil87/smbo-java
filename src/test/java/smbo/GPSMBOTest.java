@@ -204,7 +204,8 @@ public class GPSMBOTest {
 
     ObjectiveFunction sinOF = new SinOFDefault();
 
-    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
+    int priorSize = 10;
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, priorSize, 1234);
 
     double[] suggestions = new double[size*10 - 10]; // prior is 10
     try{
@@ -224,7 +225,7 @@ public class GPSMBOTest {
     for(int si = 0; si < suggestions.length ; si++) {
       System.out.println(si + ": " + suggestions[si]);
     }
-    assertEquals(40, suggestions);
+    assertEquals(40, suggestions.length);
 
   }
 
