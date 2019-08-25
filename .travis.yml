@@ -7,7 +7,7 @@ install:
 
 os: linux
 dist: trusty
-jdk: openjdk7
+jdk: openjdk8
 
 script:
   - ./gradlew build test
