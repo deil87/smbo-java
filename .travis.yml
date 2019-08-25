@@ -5,7 +5,7 @@ before_install:
 install:
   true
 
-jdk: oraclejdk9
+jdk: openjdk7
 
 script:
   - ./gradlew build test
