@@ -1,4 +1,4 @@
-# Sequential Model-based Optimisation
+# Sequential Model-based Optimisation  [![Build Status](https://travis-ci.org/deil87/smbo-java.svg?branch=master)](https://travis-ci.org/deil87/smbo-java)
 
 This project represents an implementation of the SMBO concept on top of JBlas linear algebra library.
 

@@ -1,0 +1,9 @@
+language: java
+
+before_install:
+
+install:
+  true
+
+script:
+  - ./gradlew build test
