@@ -1,6 +1,7 @@
 language: java
 
 before_install:
+  sudo apt-get install libblas-dev liblapack-dev
 
 install:
   true
