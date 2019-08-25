@@ -5,6 +5,8 @@ before_install:
 install:
   true
 
+os: linux
+dist: trusty
 jdk: openjdk7
 
 script:
