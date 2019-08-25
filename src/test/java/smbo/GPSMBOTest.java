@@ -15,34 +15,6 @@ import static org.junit.Assert.*;
 
 public class GPSMBOTest {
 
-
-  @Test
-  public void updatePrior() {
-
-    // Use case: ( X  Y  )
-    int size = 5;
-    Double[] gridEntries = new Double[size*10];
-    int i;
-    for (i = 0; i < size*10; i++) {
-      gridEntries[i] = (double) i / 10;
-    }
-
-    SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
-    grid.put("X", gridEntries);
-
-    ObjectiveFunction sinOF = new SinOFDefault();
-    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
-
-    DoubleMatrix newObservation = new DoubleMatrix(new double[] {5, 42}).transpose();
-
-    gpsmbo.updatePrior(newObservation);
-
-    assertEquals(5, gpsmbo.getObservedGridEntries().get(0,0), 1e-5);
-    assertEquals(42, gpsmbo.getObservedGridEntries().get(0,1), 1e-5);
-    DoubleMatrixUtils.multilinePrint(gpsmbo.getObservedGridEntries());
-
-  }
-
   @Test
   public void initializePriorOfSMBOWIthBatchEvaluation() throws SMBO.SMBOSearchCompleted {
 
@@ -59,9 +31,10 @@ public class GPSMBOTest {
 
     ObjectiveFunction sinOF = new SinOFDefault();
 
-    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
+    int priorSize = 10;
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, priorSize, 1234);
 
-    gpsmbo.initializePriorOfSMBOWithBatchEvaluation();
+    gpsmbo.initializePriorWithBatchEvaluation();
 
 
     DoubleMatrixUtils.multilinePrint(gpsmbo.getObservedGridEntries());
@@ -80,14 +53,14 @@ public class GPSMBOTest {
     }
 
     SortedMap<String, Object[]> grid = Collections.synchronizedSortedMap(new TreeMap());
-    grid.put("X1", gridEntries);
-    grid.put("X2", gridEntries);
+    grid.put("X", gridEntries);
 
     ObjectiveFunction sinOF = new SinOFDefault();
 
-    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
+    int priorSize = 10;
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, priorSize, 1234);
 
-    gpsmbo.initializePriorOfSMBOWithBatchEvaluation(); // This will take 10 entries for prior
+    gpsmbo.initializePriorWithBatchEvaluation(); // This will take 10 entries for prior
     GPSMBO.MaterialisedGrid materialisedGrid = gpsmbo.materializeGrid(gpsmbo.getRandomSelector(), gpsmbo._observedGridEntries.rows);
     DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries; // Rest 150 - 10 will be materialized
 
@@ -112,8 +85,7 @@ public class GPSMBOTest {
 
     GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
     DoubleMatrix afAvaluations = new DoubleMatrix(5,1, 1,3,7,2,5);
-//    DoubleMatrix means = new DoubleMatrix(5,1, 1,2,3,4,5);
-    assertEquals(3, gpsmbo.selectBest( afAvaluations), 1e-5);
+    assertEquals(2, gpsmbo.selectBestIndex( afAvaluations), 1e-5);
   }
 
   @Test
@@ -150,10 +122,12 @@ public class GPSMBOTest {
 
     ObjectiveFunction sinOF = new SinOFDefault();
 
-    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, 1234);
-    gpsmbo.initializePriorOfSMBOWithBatchEvaluation();
+    int priorSize = 5;
+    GPSMBO gpsmbo = new GPSMBO(sinOF, grid, true, priorSize, 1234);
+    gpsmbo.initializePriorWithBatchEvaluation();
     GPSMBO.MaterialisedGrid materialisedGrid = gpsmbo.materializeGrid(gpsmbo.getRandomSelector(), gpsmbo._observedGridEntries.rows);
     DoubleMatrix unObservedGridEntries = materialisedGrid.unObservedGridEntries;
+    gpsmbo._unObservedGridEntries = unObservedGridEntries;
 
     int bestIndex = 3;
     double rowWithBestSuggestion = unObservedGridEntries.getRow(bestIndex).get(0,0);
@@ -166,7 +140,7 @@ public class GPSMBOTest {
       assertTrue(rowWithBestSuggestion != unobserved);
     }
 
-    assertEquals(9, gpsmbo.getUnObservedGridEntries().length);
+    assertEquals(14, gpsmbo.getUnObservedGridEntries().length);
   }
 
   @Test

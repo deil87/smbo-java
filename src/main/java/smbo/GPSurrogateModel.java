@@ -36,15 +36,15 @@ public class GPSurrogateModel extends SurrogateModel{
   double ell = 2.0;
   double noiseVariance = 0.1;
 
-  public GPSurrogateModel(double sigma, double ell) {
+  public GPSurrogateModel(Kernel kernel, double sigma, double ell, double noiseVariance) {
 //    this.kernel = new SquaredExponentialKernel();
-    this.kernel = new RationalQuadraticKernel(12); // TODO alpha should be searched for
+    this.kernel = kernel; //new RationalQuadraticKernel(12); // TODO alpha should be searched for
     this.sigma = sigma;
     this.ell = ell;
     //TODO noiseVariance?
   }
   public GPSurrogateModel() {
-    this.kernel = null;
+    this.kernel = new RationalQuadraticKernel(12);;
   }
 
   public double getSigma() {
@@ -151,6 +151,10 @@ public class GPSurrogateModel extends SurrogateModel{
   }
 
   // TODO not tested
+  /**
+   *
+   * @param observedGridEntriesOnlyFeatures column-vector
+   */
   public DoubleMatrix ifNeededInitCovariancePrior(DoubleMatrix observedGridEntriesOnlyFeatures) {
     if(covariancePrior == null)
       covariancePrior = getCovarianceMtxWithKernel(kernel, sigma, ell, noiseVariance, observedGridEntriesOnlyFeatures, observedGridEntriesOnlyFeatures);
@@ -159,7 +163,7 @@ public class GPSurrogateModel extends SurrogateModel{
 
   // TODO not tested
   public DoubleMatrix updateCovariancePrior(DoubleMatrix observedGridEntries, DoubleMatrix newObservationFromObjectiveFun) {
-    assert covariancePrior != null;
+    assert covariancePrior != null; // as we can't say that we updating something before it was initialised
     DoubleMatrix K0 = covariancePrior;
 
     DoubleMatrix onlyFeaturesFromObserved = observedGridEntries.getColumns(new IntervalRange(0, observedGridEntries.columns - 1)).transpose();
@@ -172,14 +176,13 @@ public class GPSurrogateModel extends SurrogateModel{
   }
 
   /**
-   *  Goal is to predictMeanAndVariance for `unObservedGridEntries` */
-  public MeanVariance predictMeanAndVariance(DoubleMatrix observedGridEntriesWithMeans, DoubleMatrix unObservedGridEntries) {
+   *  Goal is to predictMeansAndVariances for `unObservedGridEntries` */
+  public MeanVariance predictMeansAndVariances(DoubleMatrix observedGridEntriesWithMeans, DoubleMatrix unObservedGridEntries) {
 
     DoubleMatrix onlyFeatures = observedGridEntriesWithMeans.getColumns(new IntervalRange(0, observedGridEntriesWithMeans.columns - 1)).transpose();
     DoubleMatrix onlyMeans = observedGridEntriesWithMeans.getColumn(observedGridEntriesWithMeans.columns - 1);
 
-    ifNeededInitCovariancePrior(onlyFeatures); // maybe this update should come from outside of surrogate model similar to single entry updates
-//    DoubleMatrixUtils.multilinePrint("Covariance prior:", covariancePrior);
+    ifNeededInitCovariancePrior(onlyFeatures); // TODO maybe this update should come from outside of surrogate model similar to single entry updates
 
     //Once we got prior covariance matrix we can predict for all the other unobserved grid entries
     MeanVariance meanVariance = posteriorMeanAndVariance(sigma, ell, noiseVariance, covariancePrior, onlyFeatures, unObservedGridEntries, onlyMeans);

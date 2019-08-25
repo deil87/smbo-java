@@ -2,6 +2,7 @@ package smbo;
 
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
+import smbo.kernel.RationalQuadraticKernel;
 import smbo.kernel.SquaredExponentialKernel;
 import utils.DoubleMatrixUtils;
 
@@ -16,15 +17,15 @@ public class GPSurrogateModelTest extends DoubleMatrixUtils {
     DoubleMatrix mtx1 = new DoubleMatrix(1,5,new double[]{1, 2, 3, 4, 5});
     DoubleMatrix mtx2 = new DoubleMatrix(1,5,new double[]{1, 2, 3, 4, 5});
     SquaredExponentialKernel kernel = new SquaredExponentialKernel();
-    DoubleMatrix covarianceMtxWithGaussianKernel = new GPSurrogateModel(1,1).getCovarianceMtxWithKernel(kernel,1, 1, noiseVariance, mtx1, mtx2);
+    DoubleMatrix covarianceMtxWithGaussianKernel = new GPSurrogateModel(new RationalQuadraticKernel(12),1,1, noiseVariance).getCovarianceMtxWithKernel(kernel,1, 1, noiseVariance, mtx1, mtx2);
     multilinePrint(covarianceMtxWithGaussianKernel);
   }
 
   @Test
   public void posteriorMeanAndVariance() {
-    double sigma = 0.1; // gamma =  1 / (2* sigma^2)  ie o.1 sigma -> gamma = 50
-    double ell = 1;
-    GPSurrogateModel gpSurrogateModel = new GPSurrogateModel(sigma, ell);
+    double sigma = 0.6;
+    double ell = 6.4;
+    GPSurrogateModel gpSurrogateModel = new GPSurrogateModel(new SquaredExponentialKernel(), sigma, ell, noiseVariance);
     DoubleMatrix observed = new DoubleMatrix(1, 3, 1, 2, 3);
     DoubleMatrix observedMeans = new DoubleMatrix(3, 1, 42, 43, 44);
 
@@ -32,7 +33,7 @@ public class GPSurrogateModelTest extends DoubleMatrixUtils {
     DoubleMatrix prior = gpSurrogateModel.getCovarianceMtxWithKernel(kernel, sigma, ell, noiseVariance, observed, observed);
 
     // When we increase value X for new observation we move closer to N(0, 1) value.
-    DoubleMatrix newObservation = new DoubleMatrix(1, 1, 3.00001);
+    DoubleMatrix newObservation = new DoubleMatrix(1, 1, 2.999);
     GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.posteriorMeanAndVariance(sigma, ell, noiseVariance, prior, observed, newObservation, observedMeans);
     double mean = meanVariance.getMean().get(0, 0);
     double variance = meanVariance.getVariance().get(0, 0);
@@ -41,35 +42,37 @@ public class GPSurrogateModelTest extends DoubleMatrixUtils {
     assertTrue(mean < 44 && mean > 43);
     assertTrue(variance < 0.01 && variance > 0);
 
-    // Let's increase X
-    DoubleMatrix newObservation2 = new DoubleMatrix(1, 1, 16);
+    // Let's increase X. Mean should go down
+    DoubleMatrix newObservation2 = new DoubleMatrix(1, 1, 5);
     GPSurrogateModel.MeanVariance meanVariance2 = gpSurrogateModel.posteriorMeanAndVariance(sigma, ell, noiseVariance, prior, observed, newObservation2, observedMeans);
     double mean2 = meanVariance2.getMean().get(0, 0);
     double variance2 = meanVariance2.getVariance().get(0, 0);
     multilinePrint("Mean:", meanVariance2.getMean());
     multilinePrint("Variance:",meanVariance2.getVariance());
-    assertEquals(0, mean2 , 1e-5);
-    assertEquals(1, variance2 , 1e-5);
+    assertTrue(mean < 44);
   }
 
   @Test
   public void evaluate() {
     double sigma = 0.6;
     double ell = 2.0;
-    SquaredExponentialKernel kernel = new SquaredExponentialKernel();
+    RationalQuadraticKernel kernel = new RationalQuadraticKernel(12);
 
-    GPSurrogateModel gpSurrogateModel = new GPSurrogateModel(sigma, ell);
+    GPSurrogateModel gpSurrogateModel = new GPSurrogateModel(kernel, sigma, ell, noiseVariance);
     DoubleMatrix observed = new DoubleMatrix(1, 3, 1, 2, 3);
     DoubleMatrix unobserved = new DoubleMatrix(1, 1, 3.1);
 
     DoubleMatrix observedMeans = new DoubleMatrix(3, 1, 42, 43, 44);
 
     DoubleMatrix observedWithMeans = DoubleMatrix.concatHorizontally(observed.transpose(), observedMeans);
-    GPSurrogateModel.MeanVariance meanVarianceFromEvaluate = gpSurrogateModel.predictMeanAndVariance(observedWithMeans, unobserved);
+
+    multilinePrint(observedWithMeans);
+    GPSurrogateModel.MeanVariance meanVarianceFromEvaluate = gpSurrogateModel.predictMeansAndVariances(observedWithMeans, unobserved);
 
     // Let's compare it with directly computed by `posteriorMeanAndVariance`
-    DoubleMatrix prior = gpSurrogateModel.getCovarianceMtxWithKernel(kernel, sigma, ell, noiseVariance, observed, observed);
-    GPSurrogateModel.MeanVariance expected = gpSurrogateModel.posteriorMeanAndVariance(sigma, ell, noiseVariance, prior, observed, unobserved, observedMeans);
+    GPSurrogateModel gpSurrogateModel2 = new GPSurrogateModel(new RationalQuadraticKernel(12), sigma, ell, noiseVariance);
+    DoubleMatrix prior = gpSurrogateModel2.getCovarianceMtxWithKernel(kernel, sigma, ell, noiseVariance, observed, observed);
+    GPSurrogateModel.MeanVariance expected = gpSurrogateModel2.posteriorMeanAndVariance(sigma, ell, noiseVariance, prior, observed, unobserved, observedMeans);
 
     assertEquals(expected.getMean(), meanVarianceFromEvaluate.getMean());
     assertEquals(expected.getVariance(), meanVarianceFromEvaluate.getVariance());
@@ -95,10 +98,12 @@ public class GPSurrogateModelTest extends DoubleMatrixUtils {
     DoubleMatrix observed = new DoubleMatrix(1, 5, 1,2,3,4,5);
 
     DoubleMatrix observedMeans = new DoubleMatrix(5, 1, 1,1.2,1.1,0.9,0.95);
-    double[] hps = new GPSurrogateModel().gridSearchOverGPsHyperparameters(observed, observedMeans);
+    double[] hps = gpSurrogateModel.gridSearchOverGPsHyperparameters(observed, observedMeans);
 
     System.out.println("Sigma:" + hps[0]);
+    assertEquals(0.7, hps[0], 1e-5);
     System.out.println("Ell:" + hps[1]);
+    assertEquals(6.4, hps[1], 1e-5);
 
   }
 }

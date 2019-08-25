@@ -4,6 +4,7 @@ import org.jblas.DoubleMatrix;
 import org.jblas.ranges.IntervalRange;
 import org.knowm.xchart.XYChart;
 import org.knowm.xchart.internal.chartpart.Chart;
+import smbo.kernel.RationalQuadraticKernel;
 import smbo.of.ObjectiveFunction;
 import utils.DoubleMatrixUtils;
 
@@ -70,7 +71,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     _randomSelector = new RandomSelector(grid, seed);
 //    _surrogateModel = new GPSurrogateModel(0.6, 0.5);
 //    _surrogateModel = new GPSurrogateModel(0.6, 10);  // TODO default sigma and ell are being used
-    _surrogateModel = new GPSurrogateModel(0.2, 6.4);  // TODO default sigma and ell are being used
+    _surrogateModel = new GPSurrogateModel(new RationalQuadraticKernel(12),0.2, 6.4, 0.01);  // TODO default sigma and ell are being used
     _acquisitionFunction = af;
     _theBiggerTheBetter = theBiggerTheBetter;
   }
@@ -154,7 +155,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
     // Calculation of prior batch.
     if(_observedGridEntries.rows == 0) {
-      initializePriorOfSMBOWithBatchEvaluation();
+      initializePriorWithBatchEvaluation();
 //      initializeDiversePriorOfSMBOWithBatchEvaluation(); //TODO consider to remove commented
 
       DoubleMatrix onlyFeatures = _observedGridEntries.getColumns(new IntervalRange(0, _observedGridEntries.columns - 1));
@@ -170,7 +171,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
     // We should evaluate only ones as it is up to the user how many times he needs to get best next suggestion. Be lazy.
     //TODO we can probably reuse suggestions from all previous iterations and do better on our predictions. Maybe not for GP implementation.
-    GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.predictMeanAndVariance(_observedGridEntries, _unObservedGridEntries.transpose()); // TODO should we always keep it transposed?
+    GPSurrogateModel.MeanVariance meanVariance = gpSurrogateModel.predictMeansAndVariances(_observedGridEntries, _unObservedGridEntries.transpose()); // TODO should we always keep it transposed?
 
     //Saving this to be able to draw confidence intervals and see predictions
     if(keepMeanHistory) meanVariancesHistory.add(meanVariance);
@@ -193,7 +194,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
       DoubleMatrixUtils.multilinePrint("Features [0...N-2], Mean and Variance ( observed = " + _observedGridEntries.rows + " )", combinedForDisplayingMtx);
     }
 
-    int bestIndex = selectBest( afEvaluations);
+    int bestIndex = selectBestIndex( afEvaluations);
 
     DoubleMatrix bestCandidateGridEntry = null;
     try {
@@ -235,7 +236,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
         unObservedGridEntries = unObservedGridEntries == null ? newMaterializedGridEntry : DoubleMatrix.concatVertically(unObservedGridEntries, newMaterializedGridEntry);
       }
     } catch (RandomSelector.NoUnexploredGridEntitiesLeft ex) {
-      System.out.println("Random selector stopped with NoUnexploredGridEntitiesLeft. Total number of exploredCount grid items: " + ex.exploredCount);
+      System.out.println("Random selector stopped with NoUnexploredGridEntitiesLeft. Total number of explored grid items: " + ex.exploredCount);
     }
     return new MaterialisedGrid(unObservedGridEntries, hashesForUnObservedGridEntries);
   }
@@ -251,7 +252,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     }
   }
 
-  void initializePriorOfSMBOWithBatchEvaluation() throws SMBOSearchCompleted {
+  void initializePriorWithBatchEvaluation() throws SMBOSearchCompleted {
     try {
       for (int j = 0; j < priorSize; j++) {
         // Select randomly and get evaluations from our objective function
@@ -324,7 +325,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     }
   }
 
-  int selectBest(DoubleMatrix afEvaluations) {
+  int selectBestIndex(DoubleMatrix afEvaluations) {
     int indexOfTheBiggestMeanImprovement = afEvaluations.argmax();
     if(!(indexOfTheBiggestMeanImprovement >= 0 && indexOfTheBiggestMeanImprovement < afEvaluations.rows)) {
       throw new IllegalStateException("Index for best suggestion from af evaluations is out of range");
