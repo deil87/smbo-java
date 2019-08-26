@@ -40,6 +40,8 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
 
   List<Chart> meanVarianceCharts = new ArrayList<Chart>();
 
+  public DoubleMatrix meanVarianceHistory;
+
   /**
    *  Default constructor with MaxImprovementAF acquisition function
    * @param of
@@ -179,7 +181,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
     // Getting acquisition function evaluations for all suggestions from surrogate model
     DoubleMatrix afEvaluations = acquisitionFunction().compute(meanVariance.getMean(), meanVariance.getVariance());
 
-    if(gridKeysOriginalOrder.length == 1) {
+    if(gridKeysOriginalOrder.length == 1) { // Univariate Objective function case
       XYChart meanVarianceChart = MeanVariancePlotHelper.plotWithVarianceIntervals(_unObservedGridEntries, _observedGridEntries, null, meanVariance, this);
       meanVarianceCharts.add(meanVarianceChart);
       //TODO we probably want to draw acquisition function as well
@@ -192,6 +194,10 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
       DoubleMatrix meanAndVariance = DoubleMatrix.concatHorizontally(meanVariance.getMean(), meanVariance.getVariance());
       DoubleMatrix combinedForDisplayingMtx = DoubleMatrix.concatHorizontally(DoubleMatrix.concatHorizontally(_unObservedGridEntries, meanAndVariance), afEvaluations);
       DoubleMatrixUtils.multilinePrint("Features [0...N-2], Mean and Variance ( observed = " + _observedGridEntries.rows + " )", combinedForDisplayingMtx);
+      int indexOfPrediction = _observedGridEntries.rows;
+      DoubleMatrix attemptIndexColumn = DoubleMatrix.ones(_unObservedGridEntries.rows).mul(indexOfPrediction);
+      DoubleMatrix combinedWithAttemptIndexMtx = DoubleMatrix.concatHorizontally(attemptIndexColumn, combinedForDisplayingMtx);
+      meanVarianceHistory = meanVarianceHistory == null ? combinedWithAttemptIndexMtx : DoubleMatrix.concatVertically(meanVarianceHistory, combinedWithAttemptIndexMtx);
     }
 
     int bestIndex = selectBestIndex( afEvaluations);

@@ -4,6 +4,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import utils.DoubleMatrixUtils;
 
+import java.io.IOException;
+
 public class DoubleMatrixTest {
 
   @Test
@@ -32,5 +34,22 @@ public class DoubleMatrixTest {
 
     DoubleMatrix expected = new DoubleMatrix(2, 5, 1.5,1.5,1.5,1.5,1.5, 1.5,1.5,1.5,1.5,1.5);
     Assert.assertEquals(expected, result);
+  }
+
+  //Saving is not CSV.
+  @Test
+  public void save() throws IOException {
+    DoubleMatrix matrix = new DoubleMatrix(2, 5, 2,2,2,2,2, 2,2,2,2,2);
+    DoubleMatrixUtils.multilinePrint(matrix);
+//    matrix.save("DoubleMatrixSaveToFile"); // saves as binary
+
+    String fileName = "DoubleMatrixSaveToFile.csv";
+    DoubleMatrixUtils.save(fileName, matrix);
+
+    DoubleMatrix loaded = DoubleMatrix.loadCSVFile(fileName);
+
+    Assert.assertEquals(matrix,loaded);
+
+
   }
 }
