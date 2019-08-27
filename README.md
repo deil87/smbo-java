@@ -23,6 +23,63 @@ Framework supports grid search(GS) for some free parameters of the kernels. Abil
 Even though framework supports multivariate objective functions, it is worth to highlight univariate scenario because we will be able to plot performance of the algorithm.
 It can be helpful for getting started and for building deeper understanding of the concept.
 
+## Benchmarks
+### Random Grid Search vs Sequential Model-Based Optimisation
+
+#### Scenario 1: 65 runs on Titanic data set, grid size = 60
+
+**Objective function:** H2O GBM
+
+**Grid:**
+
+```
+    HashMap<String, Object[]> hyperParms = new HashMap<>();
+
+    hyperParms.put("_ntrees", new Integer[]{30, 40, 50});
+
+    hyperParms.put("_max_depth", new Integer[]{1, 5, 2, 7});
+
+    hyperParms.put("_learn_rate", new Float[]{0.01f, 0.1f, 0.3f, 0.4f, 0.5f});
+```
+
+
+We want to compare how fast __**on average**__ algorithms will be able to find best combination of hyper parameters. For the benchmark any framework that supports Random Grid Search will work just fine.
+H2O.ai open source library is used for convenience as it is also written in Java. To make benchmark objective we will be doing multiple restarts with different seeds.
+
+![Per iteration predictions for Means and Variances](/images/SMBO_vs_RGS_hist_65_runs.png?raw=true "SMBO vs RGS histogram 65 runs")
+
+
+In theory, RGS's average index of best attempt should be N / 2, where N is a size of hyper parameters grid.
+Below are results of the benchmark:
+
+- SMBO ( prior size = 3 , randomly) :
+
+ average index = 9.076923076923077 out of 60
+
+- RGS:
+
+ average index = 31.784615384615385 out of 60
+
+ SMBO by 31.78 / 9 = 3.52 times was faster than RGS
+
+Note that to make comparison more fair we can exclude first 3 attempts which are random in both cases:
+
+- SMBO:
+
+ average index = 6.557377049180328 out of 57
+
+- RGS:
+
+ average index = 30.258064516129032 out of 57
+
+ SMBO by 30.25 / 6.55 = 4.6 times was faster than RGS
+
+Summary:
+
+- SMBO was able to find best value after exploring just **9 / 60 = 0.15** of the grid instead of **0.5** in RGS case
+
+- SMBO was able to find best value not later than **21 attempt** in all 65 runs. It means that we can consider early stopping without sacrificing performance.
+
 Usage:
 
 ```

@@ -119,7 +119,7 @@ public class GPSMBO extends SMBO<GPSurrogateModel, AcquisitionFunction> { // TOD
   }
 
   // TODO we probably don't need `observedGridEntries` parameter
-  DoubleMatrix selectBestBasedOnResponse(DoubleMatrix observedGridEntries) {
+  public DoubleMatrix selectBestBasedOnResponse(DoubleMatrix observedGridEntries) {
     int indexOfTheRowWithBestResponse = observedGridEntries.getColumn(observedGridEntries.columns - 1).columnArgmaxs()[0];
     return observedGridEntries.getRow(indexOfTheRowWithBestResponse);
   }
